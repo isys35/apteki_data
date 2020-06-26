@@ -8,6 +8,9 @@ def create_db():
     file = open(DB_NAME, 'wb')
     file.close()
 
+
+
+
 # noinspection SqlNoDataSourceInspection
 def create_tables():
     conn = sqlite3.connect(DB_NAME)
@@ -146,5 +149,23 @@ def get_data_meds(host=None):
     return data
 
 
+def get_prices_meds(host):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    query = """SELECT url, name, address, upd_data, host_id 
+                FROM 'apteka' WHERE host = ?"""
+    cursor.execute(query, [host])
+    apteks_data = [{"url": aptek[0],
+                    "name": aptek[1],
+                    "address": aptek[2],
+                    'upd_time': aptek[3],
+                    'host_id':aptek[4]} for aptek in cursor.fetchall()]
+    for aptek in apteks_data:
+        query = """SELECT med_id, rub
+                   FROM 'price' WHERE aptek_url = ?"""
+        cursor.execute(query, [aptek['url']])
+        aptek['prices'] = (cursor.fetchall())
+    return apteks_data
+
 if __name__ == '__main__':
-    print(get_data_meds())
+    print(get_prices_meds('https://gorzdrav.org'))
