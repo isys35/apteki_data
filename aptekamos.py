@@ -6,12 +6,14 @@ import json
 import db
 import sys
 
+
 class AptekamosParser(Parser):
     SIZE_ASYNC_REQUEST = 100
 
     def __init__(self):
         super().__init__()
         self.host = 'https://aptekamos.ru'
+        self.name = 'аптекамос'
         self.data_catalog_name = 'aptekamos_data'
         self.apteks = []
         self.meds = []
@@ -209,6 +211,7 @@ class AptekamosParser3(AptekamosParser):
                                              rub=float(med_data['price']))
                         print(price)
                         db.add_price(price)
+            db.aptek_update_updtime(aptek)
 
 
 if __name__ == '__main__':
