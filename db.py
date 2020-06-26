@@ -8,7 +8,6 @@ def create_db():
     file = open(DB_NAME, 'wb')
     file.close()
 
-
 # noinspection SqlNoDataSourceInspection
 def create_tables():
     conn = sqlite3.connect(DB_NAME)
@@ -45,6 +44,19 @@ def get_aptek_url(price):
     cursor.close()
     conn.close()
     return apteka_url
+
+
+def aptek_update_updtime(apteka):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    data = [int(time.time()), apteka.url]
+    query = f"""UPDATE apteka
+                SET upd_time=?
+                WHERE aptek_url=?"""
+    cursor.execute(query, data)
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 
 def get_med_id(price):
@@ -115,6 +127,15 @@ def add_med(med):
     return id
 
 
+def get_data_meds(host=None):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    if not host:
+        query = "SELECT * FROM med"
+        cursor.execute(query)
+    data = cursor.fetchall()
+    return data
+
+
 if __name__ == '__main__':
-    create_db()
-    create_tables()
+    print(get_data_meds())
