@@ -26,4 +26,4 @@ def create_catalog_csv(parser):
 
 
 if __name__ == '__main__':
-    create_full_catalog_csv()
+    main()
