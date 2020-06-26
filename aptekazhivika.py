@@ -14,6 +14,7 @@ class ZhivikaParser(Parser):
     def __init__(self):
         super().__init__()
         self.host = 'https://www.aptekazhivika.ru'
+        self.name = 'живика'
 
     def get_max_pages(self):
         json_post_data_all_category = []
@@ -28,13 +29,13 @@ class ZhivikaParser(Parser):
         max_pages = []
         for resp in resps:
             data = json.loads(resp)
-            max_page = 1 + data['data']['products']['total_count']//self.PAGE_SIZE
+            max_page = 1 + data['data']['products']['total_count'] // self.PAGE_SIZE
             max_pages.append(max_page)
         return max_pages
 
     def get_all_pages_data(self, id_category, max_page):
         json_post_data_all_pages = []
-        for page in range(1, max_page+1):
+        for page in range(1, max_page + 1):
             query = self.QUERY % id_category
             variables = {"pageSize": self.PAGE_SIZE, "currentPage": page}
             json_post_data = {"query": query, "variables": variables}
@@ -81,10 +82,10 @@ class ZhivikaParser(Parser):
                 address = aptek['address']
                 print(address, med_ids[med_index])
                 meds[med_index]['apteks'].append(apteka.Apteka(name='Живика',
-                                                                url=f"{self.host}/store/views/{aptek_id}",
-                                                                address=address,
-                                                                host_id=aptek_id,
-                                                                host=self.host))
+                                                               url=f"{self.host}/store/views/{aptek_id}",
+                                                               address=address,
+                                                               host_id=aptek_id,
+                                                               host=self.host))
         return meds
 
     def update_prices(self):
@@ -103,6 +104,7 @@ class ZhivikaParser(Parser):
                         price = apteka.Price(med=med, apteka=aptek, rub=med_data['price'])
                         print(price)
                         db.add_price(price)
+                        db.aptek_update_updtime(aptek)
         print('[INFO] Обновление цен завершено')
 
 

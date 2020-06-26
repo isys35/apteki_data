@@ -6,7 +6,7 @@ import apteka
 import db
 
 
-class StolichnikiParser(Parser):
+class Stolichniki(Parser):
     HEADERS = {
         'Host': 'stolichki.ru',
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0',
@@ -34,6 +34,7 @@ class StolichnikiParser(Parser):
         super().__init__()
         self.host = 'https://stolichki.ru'
         self.data_catalog_name = 'stolichniki_data'
+        self.name = 'столички'
         self.apteks = []
         self.meds = []
         self.prices = []
@@ -83,6 +84,7 @@ class StolichnikiParser(Parser):
                         self.prices.append(price)
                     except OSError:
                         continue
+            db.aptek_update_updtime(aptek)
         print('UPDATE COMPLETE')
 
     def parsing_meds(self, resp):
