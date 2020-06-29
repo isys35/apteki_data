@@ -66,8 +66,8 @@ def get_med_id(price):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     med_name = price.med.name
-    query = f"""SELECT id FROM med WHERE name='{med_name}'"""
-    cursor.execute(query)
+    query = f"""SELECT id FROM med WHERE name=?"""
+    cursor.execute(query, [med_name])
     data_meds = cursor.fetchone()
     if not data_meds:
         med_id = add_med(price.med)
