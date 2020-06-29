@@ -14,7 +14,7 @@ class ZhivikaParser(Parser):
     def __init__(self):
         super().__init__()
         self.host = 'https://www.aptekazhivika.ru'
-        self.name = 'живика'
+        self.name = 'aptekazhivika'
 
     def get_max_pages(self):
         json_post_data_all_category = []

@@ -34,7 +34,7 @@ class StolichnikiParser(Parser):
         super().__init__()
         self.host = 'https://stolichki.ru'
         self.data_catalog_name = 'stolichniki_data'
-        self.name = 'столички'
+        self.name = 'stolichki'
         self.apteks = []
         self.meds = []
         self.prices = []

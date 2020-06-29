@@ -15,7 +15,7 @@ class GorZdrafParser(Parser):
         super().__init__()
         self.host = 'https://gorzdrav.org'
         self.apteks = []
-        self.name = 'горздрав'
+        self.name = 'gorzdrav'
 
     def get_url_categories_with_pages(self):
         resp = self.request.get(self.host)
@@ -32,15 +32,6 @@ class GorZdrafParser(Parser):
                 category_with_page.append(url_page)
             url_categories_with_pages.append(category_with_page)
         return url_categories_with_pages
-
-    def update_catalog(self):
-        print('[INFO] Обновление каталога...')
-        csv_writer.create_csv_file(self.csv_catalog)
-        url_categories_with_pages = self.get_url_categories_with_pages()
-        for category_with_page in url_categories_with_pages:
-            meds = self.get_meds(category_with_page)
-            csv_writer.add_data_in_catalog(self.csv_catalog, meds)
-        print('[INFO] Обновление каталога завершено')
 
     def update_prices(self):
         print('[INFO] Обновление цен...')

@@ -13,7 +13,7 @@ class AptekamosParser(Parser):
     def __init__(self):
         super().__init__()
         self.host = 'https://aptekamos.ru'
-        self.name = 'аптекамос'
+        self.name = 'aptekamos'
         self.data_catalog_name = 'aptekamos_data'
         self.apteks = []
         self.meds = []

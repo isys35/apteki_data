@@ -10,7 +10,10 @@ import os
 
 
 def main():
-    parsers = [ZhivikaParser(), StolichnikiParser(), AptekamosParser3()]
+    parsers = [ZhivikaParser(),
+               StolichnikiParser(),
+               AptekamosParser3(),
+               GorZdrafParser()]
     for parser in parsers:
         parser.update_prices()
         create_catalog_csv(parser)
@@ -20,25 +23,25 @@ def main():
 
 def create_full_catalog_csv():
     data = db.get_data_meds()
-    csv_writer.create_csv_file('каталоги/полный каталог.csv')
-    csv_writer.add_data_in_catalog('каталоги/полный каталог.csv', data)
+    csv_writer.create_csv_file('catalogs/full_catalog.csv')
+    csv_writer.add_data_in_catalog('catalogs/full_catalog.csv', data)
 
 
 def create_catalog_csv(parser):
     data = db.get_data_meds(parser.host)
-    csv_writer.create_csv_file(f'каталоги/{parser.name}.csv')
-    csv_writer.add_data_in_catalog(f'каталоги/{parser.name}', data)
+    csv_writer.create_csv_file(f'catalogs/{parser.name}.csv')
+    csv_writer.add_data_in_catalog(f'catalogs/{parser.name}', data)
 
 
 def create_prices_xls(parser):
     print(f'[INFO] Создание xml для {parser.name}')
     try:
-        os.mkdir(f"цены/{parser.name}")
+        os.mkdir(f"prices/{parser.name}")
     except FileExistsError:
         pass
     data = db.get_prices_meds(parser.host)
     for aptek in data:
-        file_name = f"цены/{parser.name}/{parser.name}_{aptek['host_id']}.xml"
+        file_name = f"prices/{parser.name}/{parser.name}_{aptek['host_id']}.xml"
         id = str(aptek['host_id'])
         name = f"{aptek['name']} {aptek['address']}"
         date = time.localtime(aptek['upd_time'])
