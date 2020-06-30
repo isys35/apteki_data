@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 from dbfpy import dbf
 import csv
 import io

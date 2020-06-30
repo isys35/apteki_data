@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from aptekazhivika import ZhivikaParser
 from stolichniki import StolichnikiParser
 from aptekamos import AptekamosParser3
