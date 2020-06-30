@@ -99,7 +99,7 @@ class ZhivikaParser(Parser):
                 for med_data in meds:
                     for aptek in med_data['apteks']:
                         med = apteka.Med(name=med_data['med_name'],
-                                         url=f"{self.host}'/product/{med_data['med_id']}",
+                                         url=f"{self.host}/product/{med_data['med_id']}",
                                          host_id=med_data['med_id'])
                         price = apteka.Price(med=med, apteka=aptek, rub=med_data['price'])
                         print(price)
