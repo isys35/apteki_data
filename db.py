@@ -168,4 +168,5 @@ def get_prices_meds(host):
     return apteks_data
 
 if __name__ == '__main__':
-    print(get_prices_meds('https://gorzdrav.org'))
+    create_db()
+    create_tables()
