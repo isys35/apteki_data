@@ -20,7 +20,7 @@ def create_tables():
         name TEXT,
         address TEXT,
         host TEXT,
-        upd_data INTEGER,
+        upd_time INTEGER,
         host_id INTEGER)""")
     cursor.execute("""CREATE TABLE med 
         (id INTEGER PRIMARY KEY AUTOINCREMENT, 
