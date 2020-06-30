@@ -55,7 +55,7 @@ def aptek_update_updtime(apteka):
     data = [int(time.time()), apteka.url]
     query = f"""UPDATE apteka
                 SET upd_time=?
-                WHERE aptek_url=?"""
+                WHERE url=?"""
     cursor.execute(query, data)
     conn.commit()
     cursor.close()
