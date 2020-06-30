@@ -55,4 +55,4 @@ def create_prices_xls(parser):
 
 
 if __name__ == '__main__':
-    create_prices_xls(GorZdrafParser())
+    main()
