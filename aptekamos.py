@@ -20,7 +20,7 @@ class AptekamosParser(Parser):
         self.prices = []
 
     def load_initial_data(self):
-        with open(f"{self.data_catalog_name}/initial_data.txt", 'r', encoding='utf8') as file:
+        with open(f"aptekamos_init_data.txt", 'r', encoding='utf8') as file:
             initial_data = file.read()
         apteks_urls = initial_data.split('\n')
         return apteks_urls
