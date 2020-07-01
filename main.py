@@ -9,10 +9,13 @@ import xml_writer
 import time
 import os
 
+# [ZhivikaParser(),
+# StolichnikiParser(),
+# AptekamosParser3(),
+# GorZdrafParser()]
 
 def main():
-    parsers = [ZhivikaParser(),
-               StolichnikiParser(),
+    parsers = [StolichnikiParser(),
                AptekamosParser3(),
                GorZdrafParser()]
     for parser in parsers:
