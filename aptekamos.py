@@ -5,6 +5,7 @@ import apteka
 import json
 import db
 import sys
+from aiohttp.client_exceptions import ClientConnectorError
 
 
 class AptekamosParser(Parser):
@@ -198,7 +199,7 @@ class AptekamosParser3(AptekamosParser):
             for med_list in splited_meds:
                 post_urls = [post_url for _ in range(len(med_list))]
                 post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
-                responses = self.requests.post(post_urls, json_data=post_data)
+                responses = self.post_responses(post_urls, post_data)
                 for response in responses:
                     index = responses.index(response)
                     download_meds = self.pars_med(response)
@@ -212,6 +213,16 @@ class AptekamosParser3(AptekamosParser):
                         print(price)
                         db.add_price(price)
             db.aptek_update_updtime(aptek)
+
+    def post_responses(self, post_urls, post_data):
+        try:
+            responses = self.requests.post(post_urls, json_data=post_data)
+        except ClientConnectorError:
+            responses = []
+            for id in range(len(post_urls)):
+                response = self.request.post(post_urls[id], json_data=post_data[id])
+                responses.append(response)
+        return responses
 
 
 if __name__ == '__main__':
