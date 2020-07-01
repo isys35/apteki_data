@@ -23,7 +23,7 @@ def main():
         try:
             parser.update_prices()
         except Exception as ex:
-            print(ex)
+            print(ex.__class__)
             sys.exit()
         create_catalog_csv(parser)
         create_prices_xls(parser)
