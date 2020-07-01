@@ -66,12 +66,12 @@ class StolichnikiParser(Parser):
         print('UPDATE PRICES')
         self.update_apteks()
         for aptek in self.apteks:
-            print(aptek.url)
+            # print(aptek.url)
             urls_with_keys = [aptek.url + '?q=' + key for key in self.keys_for_searching]
             count_urls = len(urls_with_keys)
             resps = self.requests.get(urls_with_keys)
             for resp_index in range(count_urls):
-                print(urls_with_keys[resp_index])
+                # print(urls_with_keys[resp_index])
                 meds = self.parsing_meds(resps[resp_index])
                 for med_data in meds:
                     try:
@@ -80,6 +80,7 @@ class StolichnikiParser(Parser):
                                          url=med_data['url'],
                                          host_id=med_data['id'])
                         price = apteka.Price(apteka=aptek, med=med, rub=med_data['price'])
+                        print(price)
                         db.add_price(price)
                         self.prices.append(price)
                     except OSError:
