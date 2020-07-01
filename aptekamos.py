@@ -221,7 +221,7 @@ class AptekamosParser3(AptekamosParser):
             responses = []
             for id in range(len(post_urls)):
                 response = self.request.post(post_urls[id], json_data=post_data[id])
-                responses.append(response)
+                responses.append(response.text)
         return responses
 
 
