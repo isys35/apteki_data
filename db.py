@@ -152,7 +152,7 @@ def get_data_meds(host=None):
 def get_prices_meds(host):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    query = """SELECT url, name, address, upd_data, host_id 
+    query = """SELECT url, name, address, upd_time, host_id 
                 FROM 'apteka' WHERE host = ?"""
     cursor.execute(query, [host])
     apteks_data = [{"url": aptek[0],
