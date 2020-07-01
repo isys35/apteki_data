@@ -7,6 +7,7 @@ import apteka
 import sys
 import json
 import db
+from aiohttp.client_exceptions import ClientPayloadError
 
 
 class GorZdrafParser(Parser):
@@ -78,7 +79,7 @@ class GorZdrafParser(Parser):
         urls = [self.host + '/apteki/list/']
         extend_list = [self.host + f'/apteki/list/?page={page}' for page in range(1, max_page)]
         urls.extend(extend_list)
-        resps = self.requests.get(urls)
+        resps = self.get_resps(urls)
         self.apteks = []
         for resp in resps:
             soup = BeautifulSoup(resp, 'lxml')
@@ -94,6 +95,13 @@ class GorZdrafParser(Parser):
                                                      host=self.host,
                                                      url= f"{self.host}/apteka/{id}"))
         print('[INFO] Аптеки получены')
+
+    def get_resps(self, urls):
+        try:
+            resps = self.requests.get(urls)
+        except ClientPayloadError:
+            resps = [self.request.get(url).text for url in urls]
+        return resps
 
     def get_max_page(self, resp_text):
         soup = BeautifulSoup(resp_text, 'lxml')
