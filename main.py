@@ -8,6 +8,7 @@ import csv_writer
 import xml_writer
 import time
 import os
+import sys
 
 # [ZhivikaParser(),
 # StolichnikiParser(),
@@ -23,6 +24,7 @@ def main():
             parser.update_prices()
         except Exception as ex:
             print(ex)
+            sys.exit()
         create_catalog_csv(parser)
         create_prices_xls(parser)
     create_full_catalog_csv()
