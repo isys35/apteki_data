@@ -14,6 +14,7 @@ import os
 # AptekamosParser3(),
 # GorZdrafParser()]
 
+
 def main():
     parsers = [StolichnikiParser(),
                AptekamosParser3(),
