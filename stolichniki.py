@@ -116,5 +116,5 @@ class StolichnikiParser(Parser):
 
 
 if __name__ == '__main__':
-    parser = Stolichniki()
+    parser = StolichnikiParser()
     parser.update_prices()
