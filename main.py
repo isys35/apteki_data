@@ -17,8 +17,8 @@ import sys
 
 
 def main():
-    parsers = [AptekamosParser3(),
-               GorZdrafParser()]
+    parsers = [GorZdrafParser(),
+               AptekamosParser3()]
     for parser in parsers:
         parser.update_prices()
         create_catalog_csv(parser)
