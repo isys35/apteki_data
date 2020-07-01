@@ -16,8 +16,7 @@ import os
 
 
 def main():
-    parsers = [StolichnikiParser(),
-               AptekamosParser3(),
+    parsers = [AptekamosParser3(),
                GorZdrafParser()]
     for parser in parsers:
         parser.update_prices()
