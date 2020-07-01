@@ -20,11 +20,7 @@ def main():
     parsers = [AptekamosParser3(),
                GorZdrafParser()]
     for parser in parsers:
-        try:
-            parser.update_prices()
-        except Exception as ex:
-            print(ex.__class__)
-            sys.exit()
+        parser.update_prices()
         create_catalog_csv(parser)
         create_prices_xls(parser)
     create_full_catalog_csv()
