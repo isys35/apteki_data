@@ -226,9 +226,6 @@ class AptekamosParser3(AptekamosParser):
 
 
 if __name__ == '__main__':
-    parser = AptekamosParser()
-    try:
-        parser.update_prices()
-    except Exception as ex:
-        print(ex)
-        parser.save_object(parser, 'aptekamos_parser')
+    parser = AptekamosParser3()
+    parser.update_prices()
+
