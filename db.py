@@ -1,5 +1,7 @@
 import sqlite3
 import time
+import apteka
+
 
 DB_NAME = 'apteki.db'
 
@@ -167,6 +169,28 @@ def get_prices_meds(host):
         aptek['prices'] = (cursor.fetchall())
     return apteks_data
 
+
+def add_db_data(db_name):
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    query = """SELECT * FROM price"""
+    cursor.execute(query)
+    prices_data = cursor.fetchall()
+    for price_data in prices_data:
+        print(price_data)
+        med_data_query = """SELECT name FROM med WHERE id=?"""
+        cursor.execute(med_data_query, [price_data[3]])
+        meds_data = cursor.fetchone()
+        med = apteka.Med(name=meds_data[0], url='', host_id=0)
+        apteka_data_query = """SELECT * FROM apteka WHERE url=?"""
+        cursor.execute(apteka_data_query, [price_data[4]])
+        apteka_data = cursor.fetchone()
+        aptek = apteka.Apteka(host_id=apteka_data[5], name=apteka_data[1], address=apteka_data[2], host=apteka_data[3], url=apteka_data[0])
+        price = apteka.Price(rub=price_data, med=med, apteka=aptek)
+        aptek_update_updtime(aptek)
+        add_price(price)
+
 if __name__ == '__main__':
-    create_db()
-    create_tables()
+    # create_db()
+    # create_tables()
+    add_db_data('aptekamos.db')
