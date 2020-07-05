@@ -185,7 +185,7 @@ def add_db_data(db_name):
         cursor.execute(apteka_data_query, [price_data[4]])
         apteka_data = cursor.fetchone()
         aptek = apteka.Apteka(host_id=apteka_data[5], name=apteka_data[1], address=apteka_data[2], host=apteka_data[3], url=apteka_data[0])
-        price = apteka.Price(rub=price_data, med=med, apteka=aptek)
+        price = apteka.Price(rub=price_data[1], med=med, apteka=aptek)
         print(price)
         aptek_update_updtime(aptek)
         add_price(price)
