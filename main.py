@@ -26,6 +26,17 @@ def main():
     create_full_catalog_csv()
 
 
+def load_info():
+    parsers = [ZhivikaParser(),
+               StolichnikiParser(),
+               AptekamosParser3(),
+               GorZdrafParser()]
+    for parser in parsers:
+        create_catalog_csv(parser)
+        create_prices_xls(parser)
+    create_full_catalog_csv()
+
+
 def create_full_catalog_csv():
     data = db.get_data_meds()
     csv_writer.create_csv_file('catalogs/full_catalog.csv')
