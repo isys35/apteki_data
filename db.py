@@ -177,7 +177,6 @@ def add_db_data(db_name):
     cursor.execute(query)
     prices_data = cursor.fetchall()
     for price_data in prices_data:
-        print(price_data)
         med_data_query = """SELECT name FROM med WHERE id=?"""
         cursor.execute(med_data_query, [price_data[3]])
         meds_data = cursor.fetchone()
@@ -187,8 +186,11 @@ def add_db_data(db_name):
         apteka_data = cursor.fetchone()
         aptek = apteka.Apteka(host_id=apteka_data[5], name=apteka_data[1], address=apteka_data[2], host=apteka_data[3], url=apteka_data[0])
         price = apteka.Price(rub=price_data, med=med, apteka=aptek)
+        print(price)
         aptek_update_updtime(aptek)
         add_price(price)
+    cursor.close()
+    conn.close()
 
 if __name__ == '__main__':
     # create_db()
