@@ -21,7 +21,7 @@ def add_data_in_dbf(file_name, data):
 
 
 def csv_to_dbf(csv_file, dbf_file):
-    with io.open(csv_file, "r", encoding='cp1251') as file:
+    with io.open(csv_file, "r", encoding='utf8') as file:
         txt = file.read()
     rows = txt.split('\n')
     data = []
