@@ -37,6 +37,15 @@ def load_info():
     create_full_catalog_csv()
 
 
+def create_catalogs():
+    parsers = [ZhivikaParser(),
+               StolichnikiParser(),
+               AptekamosParser3(),
+               GorZdrafParser()]
+    for parser in parsers:
+        create_catalog_csv(parser)
+    create_full_catalog_csv()
+
 def create_full_catalog_csv():
     data = db.get_data_meds()
     csv_writer.create_csv_file('catalogs/full_catalog.csv')
@@ -44,7 +53,7 @@ def create_full_catalog_csv():
 
 
 def create_catalog_csv(parser):
-    data = db.get_data_meds(parser.host)
+    data = set(db.get_data_meds(parser.host))
     csv_writer.create_csv_file(f'catalogs/{parser.name}.csv')
     csv_writer.add_data_in_catalog(f'catalogs/{parser.name}.csv', data)
 
@@ -68,4 +77,4 @@ def create_prices_xls(parser):
 
 if __name__ == '__main__':
     # main()
-    load_info()
+    create_catalogs()
