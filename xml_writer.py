@@ -14,6 +14,28 @@ def createXML(filename, id, name, date):
         fh.write(handle)
 
 
+def createXMLaptek(filename):
+    root = etree.Element("BODY")
+    tree = etree.ElementTree(root)
+    handle = etree.tostring(tree, pretty_print=True, encoding='utf-8', xml_declaration=False)
+    with open(filename, "wb") as fh:
+        fh.write(handle)
+
+
+def add_apteks(filename, apteka):
+    tree = etree.ElementTree(file=filename)
+    root = tree.getroot()
+    for aptek in apteka:
+        item = etree.Element("ITEM")
+        item.set('aptek_id', str(aptek[0]))
+        item.set('aptek_name', f'{aptek[1]} {aptek[2]}')
+        root.append(item)
+    etree.indent(root, space="\t")
+    handle = etree.tostring(root, encoding='utf-8')
+    with open(filename, "wb") as fh:
+        fh.write(handle)
+
+
 def remove_xml(path):
     for el in os.listdir(path):
         if '.xml' == el[-4:]:

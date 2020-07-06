@@ -58,6 +58,12 @@ def create_catalog_csv(parser):
     csv_writer.add_data_in_catalog(f'catalogs/{parser.name}.csv', data)
 
 
+def create_apteks_xml():
+    data = db.get_apteks()
+    xml_writer.createXMLaptek('apteki.xml')
+    xml_writer.add_apteks('apteki.xml', data)
+
+
 def create_prices_xls(parser):
     print(f'[INFO] Создание xml для {parser.name}')
     try:
@@ -77,4 +83,4 @@ def create_prices_xls(parser):
 
 if __name__ == '__main__':
     # main()
-    create_catalogs()
+    create_apteks_xml()

@@ -192,7 +192,17 @@ def add_db_data(db_name):
     cursor.close()
     conn.close()
 
+
+def get_apteks():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    query = f"""SELECT host_id, name, address FROM apteka"""
+    cursor.execute(query)
+    data = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return data
+
 if __name__ == '__main__':
-    # create_db()
-    # create_tables()
-    add_db_data('aptekamos.db')
+    create_db()
+    create_tables()
