@@ -63,11 +63,9 @@ def create_prices_xls(parser):
         date = time.localtime(aptek['upd_time'])
         date = time.strftime("%Y-%m-%d %H:%M:%S", date)
         xml_writer.createXML(file_name, id, name, date)
-        for price in aptek['prices']:
-            rub = str(price[1]).replace('.', ',')
-            print(file_name, str(price[0]), rub)
-            xml_writer.add_price(file_name, str(price[0]), rub)
+        xml_writer.add_prices(file_name, aptek['prices'])
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    load_info()

@@ -20,16 +20,14 @@ def remove_xml(path):
             os.remove(f'{path}/{el}')
 
 
-def add_price(filename, id, price):
-    ids = get_meds_id(filename)
-    if id in ids:
-        return
+def add_prices(filename, prices):
     tree = etree.ElementTree(file=filename)
     root = tree.getroot()
-    item = etree.Element("ITEM")
-    item.set('medid', id)
-    item.set('medprice', str(price).replace('.',','))
-    root.append(item)
+    for price in prices:
+        item = etree.Element("ITEM")
+        item.set('medid', str(price[0]))
+        item.set('medprice', str(price[1]).replace('.',','))
+        root.append(item)
     etree.indent(root, space="\t")
     handle = etree.tostring(root, encoding='utf-8')
     with open(filename, "wb") as fh:
