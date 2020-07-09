@@ -216,7 +216,7 @@ class AptekamosParser3(AptekamosParser):
             db.aptek_update_updtime(aptek)
 
     def update_info(self, meds):
-        if 'descriptions' not in os.listdir:
+        if 'descriptions' not in os.listdir():
             os.mkdir('descriptions')
         count_meds = len(meds)
         print(f'Поиск препаратов на cайте {self.host}')
