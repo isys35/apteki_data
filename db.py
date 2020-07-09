@@ -167,7 +167,23 @@ def get_prices_meds(host):
                    FROM 'price' WHERE aptek_url = ?"""
         cursor.execute(query, [aptek['url']])
         aptek['prices'] = (cursor.fetchall())
+    cursor.close()
+    conn.close()
     return apteks_data
+
+
+def get_meds_obj():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    query = """SELECT * FROM med"""
+    cursor.execute(query)
+    data = cursor.fetchall()
+    meds = []
+    for el in data:
+        meds.append(apteka.MedInfo(id=el[0], name=el[1]))
+    cursor.close()
+    conn.close()
+    return meds
 
 
 def add_db_data(db_name):

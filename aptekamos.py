@@ -6,7 +6,8 @@ import json
 import db
 import sys
 from aiohttp.client_exceptions import ClientConnectorError
-
+from urllib.parse import unquote, quote
+import os
 
 class AptekamosParser(Parser):
     SIZE_ASYNC_REQUEST = 100
@@ -213,6 +214,72 @@ class AptekamosParser3(AptekamosParser):
                         print(price)
                         db.add_price(price)
             db.aptek_update_updtime(aptek)
+
+    def update_info(self, meds):
+        if 'descriptions' not in os.listdir:
+            os.mkdir('descriptions')
+        count_meds = len(meds)
+        print(f'Поиск препаратов на cайте {self.host}')
+        print(f'Всего {count_meds} препаратов')
+        splited_meds = self.split_list(meds, 100)
+        for med_list in splited_meds:
+            urls = self.get_search_urls(med_list)
+            resps = self.requests.get(urls)
+            for med in med_list:
+                index = med_list.index(med)
+                description_url = self.get_desription_url(resps[index])
+                if description_url:
+                    med.set_description_url(description_url)
+                count_meds -= 1
+                print(f'Осталось {count_meds}')
+        self.get_description_and_img(meds)
+
+    def get_description_and_img(self, meds):
+        print(f'Получение описания и картинок для препаратов на {self.host}')
+        meds = [med for med in meds if med.description_url]
+        count_meds = len(meds)
+        print(f'Всего {count_meds} препаратов')
+        splited_meds = self.split_list(meds, 100)
+        for med_list in splited_meds:
+            urls = [med.description_url for med in med_list]
+            resps = self.requests.get(urls)
+            for med in med_list:
+                index = med_list.index(med)
+                description, image_url = self.pars_description_page(resps[index])
+                os.mkdir(f'descriptions/{med.id}')
+                self.save_image(image_url, f'descriptions/{med.id}/image.jpg')
+                with open(f'descriptions/{med.id}/description.txt', 'w') as file:
+                    file.write(description)
+                count_meds -= 1
+                print(f'Осталось {count_meds}')
+
+    @staticmethod
+    def pars_description_page(resp):
+        soup = BeautifulSoup(resp, 'lxml')
+        descriptions = soup.find_all('meta', attrs={'name': 'description'})
+        descriptions = '\n'.join([description['content'] for description in descriptions])
+        image_url = soup.select_one('#med-img')['src']
+        return descriptions, image_url
+
+    @staticmethod
+    def get_desription_url(resp):
+        soup = BeautifulSoup(resp, 'lxml')
+        table = soup.select('#data')
+        url_block = table.select_one('.med-info-img')
+        if url_block:
+            return url_block['href']
+
+
+    def get_search_urls(self, med_list):
+        urls = []
+        for med in med_list:
+            if '№' in med.name:
+                url = self.host + '/tovary/poisk?q=' + quote(med.name.split('№')[0])
+            else:
+                url = self.host + '/tovary/poisk?q=' + quote(med.name)
+            urls.append(url)
+        return urls
+
 
     def post_responses(self, post_urls, post_data):
         try:

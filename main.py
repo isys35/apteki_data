@@ -20,10 +20,19 @@ def main():
     parsers = [GorZdrafParser(),
                AptekamosParser3()]
     for parser in parsers:
-        parser.update_prices()
-        create_catalog_csv(parser)
-        create_prices_xls(parser)
+        parsing(parser)
     create_full_catalog_csv()
+
+
+def parsing(parser):
+    parser.update_prices()
+    create_catalog_csv(parser)
+    create_prices_xls(parser)
+
+
+def update_info(parser):
+    meds = db.get_meds_obj()
+    parser.update_info(meds)
 
 
 def load_info():
@@ -83,4 +92,5 @@ def create_prices_xls(parser):
 
 if __name__ == '__main__':
     # main()
-    create_apteks_xml()
+    parser = AptekamosParser3()
+    update_info(parser)

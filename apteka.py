@@ -25,6 +25,24 @@ class Med(NamedTuple):
     host_id: int
 
 
+class MedInfo:
+    def __init__(self, id,  name):
+        self.name = name
+        self.id = id
+        self.description = str()
+        self.url_image = str()
+        self.description_url = str()
+
+    def set_description(self, description):
+        self.description = description
+
+    def set_url_image(self, url_image):
+        self.url_image = url_image
+
+    def set_description_url(self, description_url):
+        self.description_url = description_url
+
+
 class Price(NamedTuple):
     apteka: Apteka
     med: Med
