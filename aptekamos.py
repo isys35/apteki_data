@@ -264,7 +264,7 @@ class AptekamosParser3(AptekamosParser):
     @staticmethod
     def get_desription_url(resp):
         soup = BeautifulSoup(resp, 'lxml')
-        table = soup.select('#data')
+        table = soup.select_one('#data')
         url_block = table.select_one('.med-info-img')
         if url_block:
             return url_block['href']
