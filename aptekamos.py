@@ -221,7 +221,7 @@ class AptekamosParser3(AptekamosParser):
         count_meds = len(meds)
         print(f'Поиск препаратов на cайте {self.host}')
         print(f'Всего {count_meds} препаратов')
-        splited_meds = self.split_list(meds, 100)
+        splited_meds = self.split_list(meds, 50)
         for med_list in splited_meds:
             urls = self.get_search_urls(med_list)
             resps = self.requests.get(urls)
