@@ -239,7 +239,7 @@ class AptekamosParser3(AptekamosParser):
         meds = [med for med in meds if med.description_url]
         count_meds = len(meds)
         print(f'Всего {count_meds} препаратов')
-        splited_meds = self.split_list(meds, 100)
+        splited_meds = self.split_list(meds, 50)
         for med_list in splited_meds:
             urls = [med.description_url for med in med_list]
             resps = self.requests.get(urls)
