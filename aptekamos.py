@@ -219,6 +219,7 @@ class AptekamosParser3(AptekamosParser):
     def update_info(self, meds):
         if 'descriptions' not in os.listdir():
             os.mkdir('descriptions')
+        meds = [med for med in meds if not med.description]
         count_meds = len(meds)
         print(f'Поиск препаратов на cайте {self.host}')
         print(f'Всего {count_meds} препаратов')
@@ -250,12 +251,12 @@ class AptekamosParser3(AptekamosParser):
                 index = med_list.index(med)
                 description, image_url = self.pars_description_page(resps[index])
                 os.mkdir(f'descriptions/{med.id}')
-                self.save_image(image_url, f'descriptions/{med.id}/image.jpg')
+                if image_url:
+                    self.save_image(image_url, f'descriptions/{med.id}/image.jpg')
                 with open(f'descriptions/{med.id}/description.txt', 'w') as file:
                     file.write(description)
                 count_meds -= 1
                 print(f'Осталось {count_meds}')
-
 
     @staticmethod
     def pars_description_page(resp):

@@ -123,7 +123,14 @@ class StolichnikiParser(Parser):
             meds.append({'title': title, 'id': int(id), 'price': price_aptek_med, 'url': url})
         return meds
 
+    def update_info(self, meds):
+        meds = [med for med in meds if not med.description]
+        count_meds = len(meds)
+        print(f'Поиск препаратов на cайте {self.host}')
+        print(f'Всего {count_meds} препаратов')
+
 
 if __name__ == '__main__':
     parser = StolichnikiParser()
-    parser.update_prices()
+    # parser.update_prices()
+    parser.update_info([])
