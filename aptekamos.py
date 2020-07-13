@@ -8,6 +8,7 @@ import sys
 from aiohttp.client_exceptions import ClientConnectorError
 from urllib.parse import unquote, quote
 import os
+import pickle
 
 class AptekamosParser(Parser):
     SIZE_ASYNC_REQUEST = 100
@@ -232,6 +233,8 @@ class AptekamosParser3(AptekamosParser):
                     med.set_description_url(description_url)
                 count_meds -= 1
                 print(f'Осталось {count_meds}')
+        with open('meds', 'wb') as meds_file:
+            pickle.dump(meds, meds_file)
         self.get_description_and_img(meds)
 
     def get_description_and_img(self, meds):
@@ -253,12 +256,15 @@ class AptekamosParser3(AptekamosParser):
                 count_meds -= 1
                 print(f'Осталось {count_meds}')
 
+
     @staticmethod
     def pars_description_page(resp):
         soup = BeautifulSoup(resp, 'lxml')
         descriptions = soup.find_all('meta', attrs={'name': 'description'})
         descriptions = '\n'.join([description['content'] for description in descriptions])
-        image_url = soup.select_one('#med-img')['src']
+        image_url = soup.select_one('#med-img')
+        if image_url:
+            image_url = image_url['src']
         return descriptions, image_url
 
     @staticmethod
