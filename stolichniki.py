@@ -40,6 +40,12 @@ class StolichnikiParser(Parser):
         self.prices = []
         self.keys_for_searching = [quote(key) for key in list('qwertyuiopasdfghjklzxcvbnm1234567890йцукенгшщзхъфывапролджэячсмитьбю')]
 
+    def load_initial_data(self):
+        with open(f"stolichki_init_data.txt", 'r', encoding='utf8') as file:
+            initial_data = file.read()
+        apteks_urls = initial_data.split('\n')
+        return apteks_urls
+
     def update_apteks(self):
         print('UPDATE APTEKS')
         resp = requests.get('https://stolichki.ru/apteki', headers=self.HEADERS)
@@ -50,8 +56,11 @@ class StolichnikiParser(Parser):
         json_resp = resp.json()
         stores = json_resp['stores']
         self.apteks = []
+        initial_data = self.load_initial_data()
         for store in stores:
             url = self.host + f"/apteki/{store['id']}"
+            if url not in initial_data:
+                continue
             host_id = store['id']
             address = store['full_address']
             name = 'Столички'
