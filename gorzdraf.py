@@ -11,8 +11,8 @@ from aiohttp.client_exceptions import ClientPayloadError
 import requests
 import time
 
-class GorZdrafParser(Parser):
 
+class GorZdrafParser(Parser):
     def __init__(self):
         super().__init__()
         self.host = 'https://gorzdrav.org'
