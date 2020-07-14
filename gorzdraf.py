@@ -8,7 +8,8 @@ import sys
 import json
 import db
 from aiohttp.client_exceptions import ClientPayloadError
-
+import requests
+import time
 
 class GorZdrafParser(Parser):
 
@@ -34,47 +35,63 @@ class GorZdrafParser(Parser):
             url_categories_with_pages.append(category_with_page)
         return url_categories_with_pages
 
+    def load_initial_data(self):
+        with open("gorzdraf_init_data.txt", 'r', encoding='utf8') as file:
+            initial_data = file.read()
+        apteks_urls = initial_data.split('\n')
+        return apteks_urls
+
     def update_prices(self):
         print('[INFO] Обновление цен...')
         self.update_apteks()
         url_categories_with_pages = self.get_url_categories_with_pages()
-        for category_with_page in url_categories_with_pages:
-            meds = self.get_meds(category_with_page)
-            splited_meds = self.split_list(meds, 100)
-            for splited_med in splited_meds:
-                count_meds = len(splited_med)
-                med_urls = [med.url for med in splited_med]
-                resps = self.requests.get(med_urls)
-                aptek_urls = [f"https://gorzdrav.org/stockdb/ajax/product/{med.host_id}/stores/all/?sortName=recommend&sortType=ASC" for med in splited_med]
-                resps_apteks = self.requests.get(aptek_urls)
-                for med_index in range(count_meds):
-                    soup = BeautifulSoup(resps[med_index], 'lxml')
-                    price_soup = soup.find('meta', itemprop="price")
-                    rub = float(price_soup['content'])
-                    apteks_indexes = [int(aptek['name']) for aptek in json.loads(resps_apteks[med_index])['data']]
-                    for aptek_index in apteks_indexes:
-                        for aptek in self.apteks:
-                            if aptek_index == aptek.host_id:
-                                price = apteka.Price(apteka=aptek, med=splited_med[med_index], rub=rub)
-                                print(price)
-                                db.add_price(price)
+        count_cicle = sum([len(lst) for lst in url_categories_with_pages]) * len(self.apteks)
+        print(f"[INFO] Всего {count_cicle} циклов")
+        for aptek in self.apteks:
+            print(aptek)
+            for category in url_categories_with_pages:
+                for page_url in category:
+                    start_time = time.time()
+                    self.get_meds_and_price(page_url, aptek)
+                    count_cicle -= 1
+                    time_per_cicle = time.time()-start_time
+                    print(f"[INFO] Осталось {count_cicle} циклов примерно {int(time_per_cicle * count_cicle/60)} минут")
+        print('[INFO] Обновление цен завершено')
 
-    def get_meds(self, urls):
-        resps = self.requests.get(urls)
-        meds = []
-        for resp in resps:
-            soup = BeautifulSoup(resp, 'lxml')
-            product_blocks = soup.select('.c-prod-item.c-prod-item--grid')
-            for product_block in product_blocks:
-                index = product_block.select_one('a')['data-gtm-id']
-                url = self.host + product_block.select_one('a')['href']
-                title = product_block.select_one('a')['data-gtm-name']
-                meds.append(apteka.Med(name=title, url=url, host_id=index))
-        return meds
+
+    def get_meds_and_price(self, url, aptek):
+        cookies = {'FAVORITESTORE': f'{aptek.host_id}'}
+        resp = requests.get(url, cookies=cookies)
+        soup = BeautifulSoup(resp.text, 'lxml')
+        product_blocks = soup.select('.c-prod-item.c-prod-item--grid')
+        csrf_token = soup.find('input', attrs={'name': 'CSRFToken'})['value']
+        indexes = ','.join([product_block.select_one('a')['data-gtm-id'] for product_block in product_blocks])
+        json_data = {'CSRFToken': csrf_token, 'products': indexes}
+        while True:
+            post_resp = requests.post('https://gorzdrav.org/stockdb/ajax/posCount', headers=self.request.headers, data=json_data, cookies=cookies)
+            if post_resp.status_code == 200:
+                json_info = post_resp.json()
+                break
+            else:
+                time.sleep(1)
+                print(post_resp)
+        check_favorite = [el['product'] for el in json_info if el['favouriteStoreCountReservation']]
+        for product_block in product_blocks:
+            index = product_block.select_one('a')['data-gtm-id']
+            if index not in check_favorite:
+                continue
+            url = self.host + product_block.select_one('a')['href']
+            title = product_block.select_one('a')['data-gtm-name']
+            rub = product_block.find('meta', attrs={'itemprop': 'price'})['content']
+            med = apteka.Med(name=title, url=url, host_id=index)
+            price = apteka.Price(apteka=aptek, med=med, rub=rub)
+            # print(price)
+            db.add_price(price)
 
     def update_apteks(self):
         print('[INFO] Получение аптек...')
         resp = self.request.get(self.host + '/apteki/list/')
+        apteks_url = self.load_initial_data()
         max_page = self.get_max_page(resp.text)
         urls = [self.host + '/apteki/list/']
         extend_list = [self.host + f'/apteki/list/?page={page}' for page in range(1, max_page)]
@@ -88,12 +105,14 @@ class GorZdrafParser(Parser):
                 if 'b-table__head' not in row['class']:
                     id = int(row.select_one('.b-store-favorite__btn.js-favorites-store.js-text-hint')['data-store'])
                     adress = row.select_one('.c-pharm__descr').text.replace('\n', '').lstrip()
-                    print(id, adress)
-                    self.apteks.append(apteka.Apteka(host_id=id,
-                                                     name='ГОРЗДРАВ',
-                                                     address=adress,
-                                                     host=self.host,
-                                                     url= f"{self.host}/apteka/{id}"))
+                    url = f"{self.host}/apteki/{id}/"
+                    if url in apteks_url:
+                        aptek = apteka.Apteka(host_id=id,
+                                                name='ГОРЗДРАВ',
+                                                address=adress,
+                                                host=self.host,
+                                                url= f"{self.host}/apteki/{id}")
+                        self.apteks.append(aptek)
         print('[INFO] Аптеки получены')
 
     def get_resps(self, urls):
@@ -115,8 +134,13 @@ class GorZdrafParser(Parser):
         return max_pages
 
 
+
+
 if __name__ == '__main__':
     parser = GorZdrafParser()
+    #cookies = {'FAVORITESTORE': '74227'}
+    #resp = requests.get(parser.host, cookies=cookies)
+    #parser.save_html(resp.text, 'test.html')
     parser.update_prices()
 
 
