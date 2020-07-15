@@ -226,7 +226,7 @@ class AptekamosParser3(AptekamosParser):
         splited_meds = self.split_list(meds, 50)
         for med_list in splited_meds:
             urls = self.get_search_urls(med_list)
-            resps = self.requests.get(urls)
+            resps = self.get_responses(urls)
             for med in med_list:
                 index = med_list.index(med)
                 description_url = self.get_desription_url(resps[index])
@@ -238,6 +238,14 @@ class AptekamosParser3(AptekamosParser):
             pickle.dump(meds, meds_file)
         self.get_description_and_img(meds)
 
+    def get_responses(self, urls):
+        try:
+            resps = self.requests.get(urls)
+        except Exception:
+            resps = [self.request.get(url).text for url in urls]
+        return resps
+
+
     def get_description_and_img(self, meds):
         print(f'Получение описания и картинок для препаратов на {self.host}')
         meds = [med for med in meds if med.description_url]
@@ -246,7 +254,7 @@ class AptekamosParser3(AptekamosParser):
         splited_meds = self.split_list(meds, 50)
         for med_list in splited_meds:
             urls = [med.description_url for med in med_list]
-            resps = self.requests.get(urls)
+            resps = self.get_responses(urls)
             for med in med_list:
                 index = med_list.index(med)
                 description, image_url = self.pars_description_page(resps[index])

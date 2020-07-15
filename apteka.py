@@ -45,9 +45,6 @@ class MedInfo:
         self.url_image = str()
         self.description_url = str()
 
-    def set_description(self, description):
-        self.description = description
-
     def set_url_image(self, url_image):
         self.url_image = url_image
 

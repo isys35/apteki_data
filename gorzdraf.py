@@ -91,7 +91,7 @@ class GorZdrafParser(Parser):
                 rub = float(rub['content'])
             med = apteka.Med(name=title, url=url, host_id=index)
             price = apteka.Price(apteka=aptek, med=med, rub=rub)
-            # print(price)
+            # print(price)git pull
             db.add_price(price)
 
     def update_apteks(self):
