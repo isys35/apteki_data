@@ -258,7 +258,8 @@ class AptekamosParser3(AptekamosParser):
             for med in med_list:
                 index = med_list.index(med)
                 description, image_url = self.pars_description_page(resps[index])
-                os.mkdir(f'descriptions/{med.id}')
+                if str(med.id) not in os.listdir('descriptions'):
+                    os.mkdir(f'descriptions/{med.id}')
                 if image_url:
                     self.save_image(image_url, f'descriptions/{med.id}/image.jpg')
                 with open(f'descriptions/{med.id}/description.txt', 'w') as file:

@@ -4,7 +4,10 @@ from urllib.parse import quote
 from parsing_base import Parser
 import apteka
 import db
+from urllib.parse import unquote, quote
 
+
+# ПИХНУТЬ ИНФУ В ДЕКОРАТОРЫ
 
 class StolichnikiParser(Parser):
     HEADERS = {
@@ -124,10 +127,49 @@ class StolichnikiParser(Parser):
         return meds
 
     def update_info(self, meds):
-        meds = [med for med in meds if not med.description]
+        meds = [med for med in meds if not med.description_url]
         count_meds = len(meds)
         print(f'Поиск препаратов на cайте {self.host}')
         print(f'Всего {count_meds} препаратов')
+        for med in meds:
+            url = f'{self.host}/search?name={quote(med.name)}'
+            resp = self.request.get(url)
+            soup = BS(resp.text, 'lxml')
+            product_blocks = soup.select('.col-12-class.col-md-4-class.col-lg-4-class.d-flex-class.flex-wrap-class.product-item.mb-4-5-class')
+            for product_block in product_blocks:
+                name_block = product_block.select_one('a.text-black-class.text-success-hover-class')
+                name = name_block.text
+                if name == med.name:
+                    med.description_url = name_block['href']
+                    break
+            count_meds -= 1
+            print(f'Осталось {count_meds}')
+        self.get_description_and_img(meds)
+
+    def get_description_and_img(self, meds):
+        print(f'Получение описания и картинок для препаратов на {self.host}')
+        meds = [med for med in meds if med.description_url]
+        count_meds = len(meds)
+        print(f'Всего {count_meds} препаратов')
+        for med in meds:
+            resp = self.request.get(med.description_url)
+            description, image_url = self.pars_description_page(resp.text)
+
+    def pars_description_page(self, resp):
+        soup = BS(resp.text, 'lxml')
+        image_block = soup.find('img', attrs={'itemprop': 'image'})
+        if image_block:
+            image_url = image_block['src']
+        else:
+            image_url = None
+        description_block = soup.select_one('#product-description')
+        if description_block:
+            description = description_block.text
+        else:
+            description = None
+        print(image_url, description)
+        return image_url, description
+
 
 
 if __name__ == '__main__':
