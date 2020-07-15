@@ -258,12 +258,7 @@ class AptekamosParser3(AptekamosParser):
             for med in med_list:
                 index = med_list.index(med)
                 description, image_url = self.pars_description_page(resps[index])
-                if str(med.id) not in os.listdir('descriptions'):
-                    os.mkdir(f'descriptions/{med.id}')
-                if image_url:
-                    self.save_image(image_url, f'descriptions/{med.id}/image.jpg')
-                with open(f'descriptions/{med.id}/description.txt', 'w') as file:
-                    file.write(description)
+                self.save_info(med.id, image_url, description)
                 count_meds -= 1
                 print(f'Осталось {count_meds}')
 
@@ -284,7 +279,6 @@ class AptekamosParser3(AptekamosParser):
         url_block = table.select_one('.med-info-img')
         if url_block:
             return url_block['href']
-
 
     def get_search_urls(self, med_list):
         urls = []

@@ -6,6 +6,8 @@ from aiohttp.client_exceptions import ClientPayloadError
 import requests
 import time
 from requests.exceptions import ConnectionError
+import os
+from urllib.parse import unquote, quote
 
 
 class GorZdrafParser(Parser):
@@ -60,6 +62,57 @@ class GorZdrafParser(Parser):
                     print(f"[INFO] Осталось {count_cicle} циклов примерно {int(time_per_cicle * count_cicle/60)} минут")
         print('[INFO] Обновление цен завершено')
 
+    def update_info(self, meds):
+        if 'descriptions' not in os.listdir():
+            os.mkdir('descriptions')
+        meds = [med for med in meds if not med.description]
+        count_meds = len(meds)
+        print(f'Поиск препаратов на cайте {self.host}')
+        print(f'Всего {count_meds} препаратов')
+        for med in meds:
+            start_time = time.time()
+            url = f'{self.host}search/?text={quote(med.name)}'
+            resp = self.request.get(url)
+            soup = BeautifulSoup(resp.text, 'lxml')
+            product_blocks = soup.select('.c-prod-item c-prod-item--grid')
+            for product_block in product_blocks:
+                name_block = product_block.select_one('.c-prod-item__title')
+                name = name_block.text
+                print(name)
+                if name == med.name:
+                    med.description_url = self.host + product_block.select_one('a.c-prod-item__link.js-product-details-link.js-gtm-first-of-ten.js-gtm-ten-0')['href']
+                    break
+            count_meds -= 1
+            print(f'Осталось {count_meds}')
+            time_per_cicle = time.time() - start_time
+            print(f'Осталось примерно {int(count_meds * time_per_cicle / 60)} минут')
+        self.get_description_and_img(meds)
+
+    def get_description_and_img(self, meds):
+        print(f'Получение описания и картинок для препаратов на {self.host}')
+        meds = [med for med in meds if med.description_url]
+        count_meds = len(meds)
+        print(f'Всего {count_meds} препаратов')
+        for med in meds:
+            resp = self.request.get(med.description_url)
+            description, image_url = self.pars_description_page(resp.text)
+            self.save_info(med.id, image_url, description)
+            count_meds -= 1
+            print(f'Осталось {count_meds}')
+
+    def pars_description_page(self, resp):
+        soup = BeautifulSoup(resp.text, 'lxml')
+        image_block = soup.select_one('img.js-product-preview__primary.js-product-preview__zoom')
+        if image_block:
+            image_url = image_block['src']
+        else:
+            image_url = None
+        description_block = soup.select_one('.c-product__specs')
+        if description_block:
+            description = description_block.text
+        else:
+            description = None
+        return image_url, description
 
     def get_meds_and_price(self, url, aptek):
         cookies = {'FAVORITESTORE': f'{aptek.host_id}'}

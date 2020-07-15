@@ -44,6 +44,14 @@ class Parser:
         with open(f"{image_name}", 'wb') as out:
             out.write(content)
 
+    def save_info(self, med_id, image_url, description):
+        if str(med_id) not in os.listdir('descriptions'):
+            os.mkdir(f'descriptions/{med_id}')
+        if image_url:
+            self.save_image(image_url, f'descriptions/{med_id}/image.jpg')
+        with open(f'descriptions/{med_id}/description.txt', 'w') as file:
+            file.write(description)
+
     @staticmethod
     def split_list(lst, size_lst):
         return [lst[i:i+size_lst] for i in range(0, len(lst), size_lst)]

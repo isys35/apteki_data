@@ -5,7 +5,8 @@ from parsing_base import Parser
 import apteka
 import db
 from urllib.parse import unquote, quote
-
+import time
+import os
 
 # ПИХНУТЬ ИНФУ В ДЕКОРАТОРЫ
 
@@ -132,6 +133,7 @@ class StolichnikiParser(Parser):
         print(f'Поиск препаратов на cайте {self.host}')
         print(f'Всего {count_meds} препаратов')
         for med in meds:
+            start_time = time.time()
             url = f'{self.host}/search?name={quote(med.name)}'
             resp = self.request.get(url)
             soup = BS(resp.text, 'lxml')
@@ -139,11 +141,14 @@ class StolichnikiParser(Parser):
             for product_block in product_blocks:
                 name_block = product_block.select_one('a.text-black-class.text-success-hover-class')
                 name = name_block.text
+                print(name)
                 if name == med.name:
                     med.description_url = name_block['href']
                     break
             count_meds -= 1
             print(f'Осталось {count_meds}')
+            time_per_cicle = time.time() - start_time
+            print(f'Осталось примерно {int(count_meds*time_per_cicle/60)} минут')
         self.get_description_and_img(meds)
 
     def get_description_and_img(self, meds):
@@ -154,6 +159,9 @@ class StolichnikiParser(Parser):
         for med in meds:
             resp = self.request.get(med.description_url)
             description, image_url = self.pars_description_page(resp.text)
+            self.save_info(med.id, image_url, description)
+            count_meds -= 1
+            print(f'Осталось {count_meds}')
 
     def pars_description_page(self, resp):
         soup = BS(resp.text, 'lxml')
@@ -167,7 +175,6 @@ class StolichnikiParser(Parser):
             description = description_block.text
         else:
             description = None
-        print(image_url, description)
         return image_url, description
 
 
