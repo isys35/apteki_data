@@ -84,7 +84,11 @@ class GorZdrafParser(Parser):
                 continue
             url = self.host + product_block.select_one('a')['href']
             title = product_block.select_one('a')['data-gtm-name']
-            rub = product_block.find('meta', attrs={'itemprop': 'price'})['content']
+            rub = product_block.find('meta', attrs={'itemprop': 'price'})
+            if not rub:
+                continue
+            else:
+                rub = float(rub['content'])
             med = apteka.Med(name=title, url=url, host_id=index)
             price = apteka.Price(apteka=aptek, med=med, rub=rub)
             # print(price)
