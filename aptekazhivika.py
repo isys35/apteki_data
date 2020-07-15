@@ -107,6 +107,16 @@ class ZhivikaParser(Parser):
                         db.aptek_update_updtime(aptek)
         print('[INFO] Обновление цен завершено')
 
+    def update_info(self, meds):
+        meds = [med for med in meds if not med.description_url]
+        count_meds = len(meds)
+        print(f'Поиск препаратов на cайте {self.host}')
+        print(f'Всего {count_meds} препаратов')
+        for med in meds:
+            start_time = time.time()
+
+
+
 
 if __name__ == '__main__':
     parser = ZhivikaParser()

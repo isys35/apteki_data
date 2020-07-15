@@ -92,5 +92,6 @@ def create_prices_xls(parser):
 
 if __name__ == '__main__':
     # main()
-    parser = StolichnikiParser()
-    update_info(parser)
+    parsers = [AptekamosParser3(), StolichnikiParser(), GorZdrafParser()]
+    for parser in parsers:
+        update_info(parser)
