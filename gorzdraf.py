@@ -1,15 +1,11 @@
 from parsing_base import Parser
 from bs4 import BeautifulSoup
-import csv_writer
-import time
-import xml_writer
 import apteka
-import sys
-import json
 import db
 from aiohttp.client_exceptions import ClientPayloadError
 import requests
 import time
+from requests.exceptions import ConnectionError
 
 
 class GorZdrafParser(Parser):
@@ -52,7 +48,13 @@ class GorZdrafParser(Parser):
             for category in url_categories_with_pages:
                 for page_url in category:
                     start_time = time.time()
-                    self.get_meds_and_price(page_url, aptek)
+                    while True:
+                        try:
+                            self.get_meds_and_price(page_url, aptek)
+                            break
+                        except ConnectionError:
+                            print(ConnectionError)
+                            time.sleep(60)
                     count_cicle -= 1
                     time_per_cicle = time.time()-start_time
                     print(f"[INFO] Осталось {count_cicle} циклов примерно {int(time_per_cicle * count_cicle/60)} минут")
