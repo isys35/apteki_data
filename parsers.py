@@ -127,6 +127,18 @@ class Parse:
             meds.append({'title': title, 'id': int(id), 'price': price_aptek_med, 'url': url})
         return meds
 
+    def parse_med_names_and_urls_in_stolichniki(self):
+        soup = BeautifulSoup(self.response_text, 'lxml')
+        meds_blocks = soup.select(
+            '.col-12-class.col-md-4-class.col-lg-4-class.d-flex-class.flex-wrap-class.product-item.mb-4-5-class')
+        meds_names_and_urls = []
+        for med_block in meds_blocks:
+            name_block = med_block.select_one('a.text-black-class.text-success-hover-class')
+            name = name_block.text
+            block_url = name_block['href']
+            meds_names_and_urls.append({'name': name, 'url': block_url})
+        return meds_names_and_urls
+
 
 class AptekamosParser(Parser):
     def __init__(self):
@@ -394,6 +406,20 @@ class StolichnikiParser(AptekamosParser):
             time_left_in_minute = int(time_left / 60)
             print(f'[INFO {self.host}] Осталось примерно {time_left_in_minute} минут')
             db.aptek_update_updtime(aptek)
+
+    @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
+    def download_image_and_description(self, meds_info_objects):
+        print(f'[INFO {self.host}] Проверка наличия препаратов на сайте')
+        meds = [med for med in meds_info_objects if not med.description_url]
+        count_meds = len(meds)
+        print(f'[INFO {self.host}] Всего {count_meds} препаратов')
+        for med in meds:
+            start_time = time.time()
+            url = f'{self.host}/search?name={quote(med.name)}'
+            response = self.request.get(url)
+            meds_names_and_urls = Parse(response.text).parse_med_names_and_urls_in_stolichniki()
+
+
 
 
 if __name__ == '__main__':
