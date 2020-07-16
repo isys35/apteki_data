@@ -80,12 +80,21 @@ class Parse:
             data_meds.append({'title': med_name, 'id': drug_id, 'price': price})
         return data_meds
 
-    def parse_desription_url_in_aptekamos(self):
+    def parse_desriptionurl_in_aptekamos(self):
         soup = BeautifulSoup(self.response_text, 'lxml')
         table = soup.select_one('#data')
         url_block = table.select_one('.med-info-img')
         if url_block:
             return url_block['href']
+
+    def parse_description_imageurl_in_aptekamos(self):
+        soup = BeautifulSoup(self.response_text, 'lxml')
+        descriptions = soup.find_all('meta', attrs={'name': 'description'})
+        descriptions = '\n'.join([description['content'] for description in descriptions])
+        image_url = soup.select_one('#med-img')
+        if image_url:
+            image_url = image_url['src']
+        return descriptions, image_url
 
 
 class AptekamosParser(Parser):
@@ -187,7 +196,7 @@ class AptekamosParser(Parser):
 
     @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
     def download_image_and_description(self, meds_info_objects):
-        print(f'[INFO {self.host} jbcr ghtgf]')
+        print(f'[INFO {self.host}] Проверка наличия препаратов на сайте')
         if 'descriptions' not in os.listdir():
             os.mkdir('descriptions')
         meds = [med for med in meds_info_objects if not med.description_url]
@@ -202,12 +211,42 @@ class AptekamosParser(Parser):
             time_left_in_minute = int((time_per_cicle * (len(splited_meds) - splited_meds.index(med_list))) / 60)
             for med in med_list:
                 index = med_list.index(med)
-                description_url = Parse(responses[index])
+                description_url = Parse(responses[index]).parse_desriptionurl_in_aptekamos()
                 if description_url:
                     med.set_description_url(description_url)
                 count_meds -= 1
                 print(f'[INFO {self.host}] Осталось {count_meds} препаратов и примерно {time_left_in_minute} минут')
-        # self.get_description_and_img(meds)
+        print(f'[INFO {self.host}] Все препараты проверены')
+        self.get_image_and_description(meds)
+
+    @border_method_info('Получение картинок и описания...', 'Получение картинок и описания завершено.')
+    def get_image_and_description(self, meds):
+        meds = [med for med in meds if med.description_url]
+        count_meds = len(meds)
+        print(f'[INFO {self.host}] Всего {count_meds} препаратов')
+        splited_meds = self.split_list(meds, 50)
+        for med_list in splited_meds:
+            start_time = time.time()
+            urls = [med.description_url for med in med_list]
+            resps = self.get_responses(urls)
+            time_per_cicle = time.time() - start_time
+            for med in med_list:
+                index = med_list.index(med)
+                description, image_url = Parse(resps[index]).parse_description_imageurl_in_aptekamos()
+                self.save_image_and_description(med.id, image_url, description)
+                count_meds -= 1
+                print(f'Осталось {count_meds} препаратов')
+            time_left = time_per_cicle * (len(splited_meds) - splited_meds.index(med_list))
+            time_left_in_minute = int(time_left / 60)
+            print(f'Осталось примерно {time_left_in_minute} минут')
+
+    def save_image_and_description(self, med_id, image_url, description):
+        if str(med_id) not in os.listdir('descriptions'):
+            os.mkdir(f'descriptions/{med_id}')
+        if image_url:
+            self.save_image(image_url, f'descriptions/{med_id}/image.jpg')
+        with open(f'descriptions/{med_id}/description.txt', 'w') as file:
+            file.write(description)
 
     def get_search_meds_urls(self, med_list):
         urls = []
