@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-NAMES = ['НЕОФАРМ',
+NAMES_APTEK = ['НЕОФАРМ',
          'ГОРЗДРАВ',
          'Планета Здоровья',
          'ВИТА Экспресс',

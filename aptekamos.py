@@ -10,6 +10,7 @@ from urllib.parse import unquote, quote
 import os
 import pickle
 
+
 class AptekamosParser(Parser):
     SIZE_ASYNC_REQUEST = 100
 
@@ -20,7 +21,6 @@ class AptekamosParser(Parser):
         self.data_catalog_name = 'aptekamos_data'
         self.apteks = []
         self.meds = []
-        self.prices = []
 
     def load_initial_data(self):
         with open(f"aptekamos_init_data.txt", 'r', encoding='utf8') as file:
@@ -194,7 +194,6 @@ class AptekamosParser3(AptekamosParser):
         if not self.meds:
             self.update_meds()
         print('UPDATE PRICES')
-        self.prices = []
         post_url = self.host + '/Services/WOrgs/getOrgPrice4?compressOutput=1'
         for aptek in self.apteks:
             splited_meds = self.split_list(self.meds, 100)
