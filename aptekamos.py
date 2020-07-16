@@ -244,7 +244,6 @@ class AptekamosParser3(AptekamosParser):
             resps = [self.request.get(url).text for url in urls]
         return resps
 
-
     def get_description_and_img(self, meds):
         print(f'Получение описания и картинок для препаратов на {self.host}')
         meds = [med for med in meds if med.description_url]
