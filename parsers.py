@@ -6,6 +6,7 @@ from urllib.parse import quote
 from concurrent.futures._base import TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
 from bs4 import BeautifulSoup
+import requests
 
 import db
 from apteka import Apteka, Med, Price, NAMES_APTEK
@@ -96,12 +97,43 @@ class Parse:
             image_url = image_url['src']
         return descriptions, image_url
 
+    def parse_csrf_token_in_stolichniki(self):
+        soup = BeautifulSoup(self.response_text, 'lxml')
+        csrf_token = soup.find('meta', attrs={'name': "csrf-token"})['content']
+        return csrf_token
+
+    def parse_meds_data_in_stolichniki(self):
+        soup = BeautifulSoup(self.response_text, 'lxml')
+        table = soup.select_one('.table.products-list-in-store')
+        meds = []
+        if not table:
+            return meds
+        meds_soup = table.select_one('tbody').select('tr')
+        for med_soup in meds_soup:
+            title = med_soup.select_one('.store-info').select_one('a').text
+            id = med_soup.select_one('.store-info').select_one('a')['href'].split('/')[-1]
+            url = 'https://aptekamos.ru' + med_soup.select_one('.store-info').select_one('a')['href']
+            product_prices = med_soup.select_one('.product-price').select('.price-block')
+            product_prices_num = []
+            for product_price in product_prices:
+                price_txt = product_price.text.replace('\n', '').replace(u'\xa0', ' ')
+                if 'Цена по карте' in price_txt:
+                    continue
+                if not 'Цена' in price_txt:
+                    continue
+                price = price_txt.split(' ')[1]
+                product_prices_num.append(float(price))
+            price_aptek_med = product_prices_num[-1]
+            meds.append({'title': title, 'id': int(id), 'price': price_aptek_med, 'url': url})
+        return meds
+
 
 class AptekamosParser(Parser):
     def __init__(self):
         super().__init__()
         self.file_init_data = "aptekamos_init_data.txt"
         self.host = 'https://aptekamos.ru'
+        self.data_catalog_name = 'aptekamos_data'
         self.apteks = []
         self.meds = []
 
@@ -229,16 +261,16 @@ class AptekamosParser(Parser):
             start_time = time.time()
             urls = [med.description_url for med in med_list]
             resps = self.get_responses(urls)
-            time_per_cicle = time.time() - start_time
             for med in med_list:
                 index = med_list.index(med)
                 description, image_url = Parse(resps[index]).parse_description_imageurl_in_aptekamos()
                 self.save_image_and_description(med.id, image_url, description)
                 count_meds -= 1
-                print(f'Осталось {count_meds} препаратов')
+                print(f'[INFO {self.host}] Осталось {count_meds} препаратов')
+            time_per_cicle = time.time() - start_time
             time_left = time_per_cicle * (len(splited_meds) - splited_meds.index(med_list))
             time_left_in_minute = int(time_left / 60)
-            print(f'Осталось примерно {time_left_in_minute} минут')
+            print(f'[INFO {self.host}] Осталось примерно {time_left_in_minute} минут')
 
     def save_image_and_description(self, med_id, image_url, description):
         if str(med_id) not in os.listdir('descriptions'):
@@ -276,6 +308,91 @@ class AptekamosParser(Parser):
         return responses
 
 
+class StolichnikiParser(AptekamosParser):
+    HEADERS = {
+        'Host': 'stolichki.ru',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'TE': 'Trailers'
+    }
+    HEADERS_JSON = {
+        'Host': 'stolichki.ru',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'TE': 'Trailers',
+        'Referer': 'https://stolichki.ru/apteki',
+        'Accept': 'application/json, text/plain, */*',
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+    KEYS_FOR_SEARCHING = [quote(key) for key in
+                          list('qwertyuiopasdfghjklzxcvbnm1234567890йцукенгшщзхъфывапролджэячсмитьбю')]
+
+    def __init__(self):
+        super().__init__()
+        self.file_init_data = "stolichki_init_data.txt"
+        self.host = 'https://stolichki.ru'
+        self.data_catalog_name = 'stolichniki_data'
+        self.apteks = []
+        self.meds = []
+        self.prices = []
+
+    @border_method_info(f'Обновление аптек...', 'Обновление аптек завершено.')
+    def update_apteks(self):
+        response = requests.get('https://stolichki.ru/apteki', headers=self.HEADERS)
+        csrf_token = Parse(response.text).parse_csrf_token_in_stolichniki()
+        self.HEADERS_JSON['X-CSRF-TOKEN'] = csrf_token
+        response = requests.get('https://stolichki.ru/stores/all?cityId=1', headers=self.HEADERS_JSON)
+        json_response = response.json()
+        stores = json_response['stores']
+        self.apteks = []
+        initial_data = self.load_initial_data()
+        for store in stores:
+            url = self.host + f"/apteki/{store['id']}"
+            if url not in initial_data:
+                continue
+            host_id = store['id']
+            address = store['full_address']
+            name = 'Столички'
+            host = self.host
+            apteka = Apteka(url=url,
+                            host_id=host_id,
+                            address=address,
+                            name=name,
+                            host=host)
+            self.apteks.append(apteka)
+
+    @border_method_info('Обновление цен...', 'Обновление цен завершено.')
+    def update_prices(self):
+        self.update_apteks()
+        count_cicles = len(self.KEYS_FOR_SEARCHING) * len(self.apteks)
+        print(f'[INFO {self.host}] Всего {count_cicles} циклов')
+        for aptek in self.apteks:
+            start_time = time.time()
+            urls_with_keys = [aptek.url + '?q=' + key for key in self.KEYS_FOR_SEARCHING]
+            count_urls = len(urls_with_keys)
+            responses = self.get_responses(urls_with_keys)
+            for response_index in range(count_urls):
+                meds_data = Parse(responses[response_index]).parse_meds_data_in_stolichniki()
+                for med_data in meds_data:
+                    med = Med(name=med_data['title'], url=med_data['url'], host_id=med_data['id'])
+                    price = Price(apteka=aptek, med=med, rub=med_data['price'])
+                    db.add_price(price)
+                    count_cicles -= 1
+                    print(f'[INFO {self.host}] Осталось {count_cicles} циклов')
+            time_per_cicle = time.time() - start_time
+            time_left = time_per_cicle * (len(self.apteks) - self.apteks.index(aptek))
+            time_left_in_minute = int(time_left / 60)
+            print(f'[INFO {self.host}] Осталось примерно {time_left_in_minute} минут')
+            db.aptek_update_updtime(aptek)
+
+
 if __name__ == '__main__':
-    parser = AptekamosParser()
+    parser = StolichnikiParser()
     parser.update_prices()

@@ -8,7 +8,6 @@ from urllib.parse import unquote, quote
 import time
 import os
 
-# ПИХНУТЬ ИНФУ В ДЕКОРАТОРЫ
 
 class StolichnikiParser(Parser):
     HEADERS = {
