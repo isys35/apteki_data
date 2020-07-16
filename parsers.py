@@ -188,4 +188,4 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     parser = AptekamosParser()
-    parser.update_meds()
+    parser.update_prices()
