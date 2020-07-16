@@ -248,6 +248,7 @@ class AptekamosParser(Parser):
                     med.set_description_url(description_url)
                 count_meds -= 1
                 print(f'[INFO {self.host}] Осталось {count_meds} препаратов и примерно {time_left_in_minute} минут')
+        self.save_object(meds, 'meds_info') # ДЛЯ ДЕБАГА !! УДАЛИТЬ
         print(f'[INFO {self.host}] Все препараты проверены')
         self.get_image_and_description(meds)
 
@@ -264,6 +265,7 @@ class AptekamosParser(Parser):
             for med in med_list:
                 index = med_list.index(med)
                 description, image_url = Parse(resps[index]).parse_description_imageurl_in_aptekamos()
+                print(description)
                 print(image_url)
                 self.save_image_and_description(med.id, image_url, description)
                 count_meds -= 1
