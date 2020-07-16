@@ -41,7 +41,6 @@ class MedInfo:
     def __init__(self, id,  name):
         self.name = name
         self.id = id
-        self.description = str()
         self.url_image = str()
         self.description_url = str()
 

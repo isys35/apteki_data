@@ -9,6 +9,7 @@ import xml_writer
 import time
 import os
 import sys
+import parsers
 
 # [ZhivikaParser(),
 # StolichnikiParser(),

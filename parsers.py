@@ -1,9 +1,15 @@
-from parsing_base import Parser
-from bs4 import BeautifulSoup
-from apteka import Apteka, Med, Price, NAMES_APTEK
-from aiohttp.client_exceptions import ClientConnectorError
 import json
+import os
+import time
+from urllib.parse import quote
+
+from concurrent.futures._base import TimeoutError
+from aiohttp.client_exceptions import ClientConnectorError
+from bs4 import BeautifulSoup
+
 import db
+from apteka import Apteka, Med, Price, NAMES_APTEK
+from parsing_base import Parser
 
 
 def border_method_info(pre_info, post_info):
@@ -74,6 +80,13 @@ class Parse:
             data_meds.append({'title': med_name, 'id': drug_id, 'price': price})
         return data_meds
 
+    def parse_desription_url_in_aptekamos(self):
+        soup = BeautifulSoup(self.response_text, 'lxml')
+        table = soup.select_one('#data')
+        url_block = table.select_one('.med-info-img')
+        if url_block:
+            return url_block['href']
+
 
 class AptekamosParser(Parser):
     def __init__(self):
@@ -139,6 +152,7 @@ class AptekamosParser(Parser):
                 count_pages -= 1
                 print(f"[INFO {self.host}] Осталось {count_pages} страниц в каталоге")
 
+    @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
         self.update_apteks()
         self.update_meds()
@@ -166,17 +180,51 @@ class AptekamosParser(Parser):
                     print(f"[INFO {self.host}] Осталось {count_position} позиций для проверки")
             db.aptek_update_updtime(aptek)
 
+    @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
+    def download_image_and_description(self, meds_info_objects):
+        print(f'[INFO {self.host} jbcr ghtgf]')
+        if 'descriptions' not in os.listdir():
+            os.mkdir('descriptions')
+        meds = [med for med in meds_info_objects if not med.description_url]
+        count_meds = len(meds)
+        print(f'[INFO {self.host}] Всего {count_meds} препаратов')
+        splited_meds = self.split_list(meds, 50)
+        for med_list in splited_meds:
+            start_time = time.time()
+            urls = self.get_search_meds_urls(med_list)
+            responses = self.get_responses(urls)
+            time_per_cicle = time.time() - start_time
+            for med in med_list:
+                index = med_list.index(med)
+                description_url = Parse(responses[index])
+                if description_url:
+                    med.set_description_url(description_url)
+                count_meds -= 1
+                time_left_in_minute = int((time_per_cicle*(len(splited_meds) - splited_meds.index(med_list)))/60)
+                print(f'[INFO {self.host}] Осталось {count_meds} препаратов и примерно {time_left_in_minute} минут')
+        # self.get_description_and_img(meds)
+
+    def get_search_meds_urls(self, med_list):
+        urls = []
+        for med in med_list:
+            if '№' in med.name:
+                url = self.host + '/tovary/poisk?q=' + quote(med.name.split('№')[0])
+            else:
+                url = self.host + '/tovary/poisk?q=' + quote(med.name)
+            urls.append(url)
+        return urls
+
     def get_responses(self, urls):
         try:
             resps = self.requests.get(urls)
-        except ClientConnectorError:
+        except (ClientConnectorError, TimeoutError):
             resps = [self.request.get(url).text for url in urls]
         return resps
 
     def post_responses(self, post_urls, post_data):
         try:
             responses = self.requests.post(post_urls, json_data=post_data)
-        except ClientConnectorError:
+        except (ClientConnectorError, TimeoutError):
             responses = []
             for id in range(len(post_urls)):
                 response = self.request.post(post_urls[id], json_data=post_data[id])
@@ -186,4 +234,4 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     parser = AptekamosParser()
-    parser.update_prices()
+    parser.download_image_and_description()
