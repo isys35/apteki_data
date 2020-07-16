@@ -19,8 +19,13 @@ class Parse:
 
     def parse_header_aptek(self):
         soup = BeautifulSoup(self.response_text, 'lxml')
-        header_aptek = soup.select_one('#main-header').select_one('h1').text
-        return header_aptek
+        main_header_block = soup.select_one('#main-header')
+        if not main_header_block:
+            return
+        header_aptek_block = main_header_block.select_one('h1')
+        if header_aptek_block:
+            header_aptek = header_aptek_block.text
+            return header_aptek
 
     def parse_adress_aptek(self):
         soup = BeautifulSoup(self.response_text, 'lxml')
@@ -49,13 +54,16 @@ class AptekamosParser(Parser):
         count_apteks = len(apteks_urls)
         print(f'[INFO] Всего {count_apteks} аптек')
         for aptek_response_index in range(count_apteks):
-            print(apteks_urls[aptek_response_index])
             apteka = self.get_aptek(apteks_urls, apteks_responses, aptek_response_index)
+            if not apteka:
+                continue
             self.apteks.append(apteka)
             print(f'[INFO] Осталось {count_apteks-aptek_response_index} аптек')
 
     def get_aptek(self, apteks_urls, apteks_responses, aptek_response_index):
         header_aptek = Parse(apteks_responses[aptek_response_index]).parse_header_aptek()
+        if not header_aptek:
+            return
         aptek_name = str()
         for name in NAMES_APTEK:
             if name in header_aptek:
