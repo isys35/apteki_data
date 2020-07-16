@@ -91,7 +91,6 @@ class AptekamosParser(Parser):
 
     @border_method_info(f'Обновление аптек...', 'Обновление аптек завершено.')
     def update_apteks(self):
-        self.apteks = []
         apteks_urls = self.load_initial_data()
         apteks_responses = self.get_responses(apteks_urls)
         count_apteks = len(apteks_urls)
@@ -140,10 +139,9 @@ class AptekamosParser(Parser):
                 count_pages -= 1
                 print(f"[INFO {self.host}] Осталось {count_pages} страниц в каталоге")
 
-    @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
         self.update_apteks()
-        self.update_prices()
+        self.update_meds()
         count_position = len(self.apteks) * len(self.meds)
         print(f"[INFO {self.host}] Всего {count_position} позиций для проверки")
         post_url = self.host + '/Services/WOrgs/getOrgPrice4?compressOutput=1'
