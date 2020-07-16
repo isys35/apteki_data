@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from aptekazhivika import ZhivikaParser
 from stolichniki import StolichnikiParser
-from aptekamos import AptekamosParser3
+from parsers import AptekamosParser
 from gorzdraf import GorZdrafParser
 import db
 import csv_writer
@@ -31,9 +31,9 @@ def parsing(parser):
     create_prices_xls(parser)
 
 
-def update_info(parser):
+def download_images_and_descriptions(parser):
     meds = db.get_meds_obj()
-    parser.update_info(meds)
+    parser.download_image_and_description(meds)
 
 
 def load_info():
@@ -93,6 +93,5 @@ def create_prices_xls(parser):
 
 if __name__ == '__main__':
     # main()
-    parsers = [AptekamosParser3(), StolichnikiParser(), GorZdrafParser()]
-    for parser in parsers:
-        update_info(parser)
+    parser = AptekamosParser()
+    download_images_and_descriptions(parser)
