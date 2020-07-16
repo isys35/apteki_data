@@ -162,9 +162,14 @@ class AptekamosParser(Parser):
         for aptek in self.apteks:
             splited_meds = self.split_list(self.meds, 100)
             for med_list in splited_meds:
+                start_time = time.time()
                 post_urls = [post_url for _ in range(len(med_list))]
                 post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
                 responses = self.post_responses(post_urls, post_data)
+                time_per_cicle = time.time() - start_time
+                time_left = time_per_cicle * (len(splited_meds) - splited_meds.index(med_list)) \
+                            * (len(self.apteks) - self.apteks.index(aptek))
+                teme_left_in_minute = int(time_left/60)
                 for response in responses:
                     index = responses.index(response)
                     ids_titles_prices_meds = Parse(response).parse_ids_titles_prices_meds_in_aptekamos()
@@ -177,7 +182,7 @@ class AptekamosParser(Parser):
                                       rub=float(id_title_price_med['price']))
                         db.add_price(price)
                     count_position -= 1
-                    print(f"[INFO {self.host}] Осталось {count_position} позиций для проверки")
+                    print(f"[INFO {self.host}] Осталось {count_position} позиций для проверки и примерно {teme_left_in_minute} минут")
             db.aptek_update_updtime(aptek)
 
     @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
@@ -194,13 +199,13 @@ class AptekamosParser(Parser):
             urls = self.get_search_meds_urls(med_list)
             responses = self.get_responses(urls)
             time_per_cicle = time.time() - start_time
+            time_left_in_minute = int((time_per_cicle * (len(splited_meds) - splited_meds.index(med_list))) / 60)
             for med in med_list:
                 index = med_list.index(med)
                 description_url = Parse(responses[index])
                 if description_url:
                     med.set_description_url(description_url)
                 count_meds -= 1
-                time_left_in_minute = int((time_per_cicle*(len(splited_meds) - splited_meds.index(med_list)))/60)
                 print(f'[INFO {self.host}] Осталось {count_meds} препаратов и примерно {time_left_in_minute} минут')
         # self.get_description_and_img(meds)
 
@@ -234,4 +239,4 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     parser = AptekamosParser()
-    parser.download_image_and_description()
+    parser.update_prices()
