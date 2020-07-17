@@ -423,5 +423,5 @@ class StolichnikiParser(AptekamosParser):
 
 
 if __name__ == '__main__':
-    parser = StolichnikiParser()
+    parser = AptekamosParser()
     parser.update_prices()
