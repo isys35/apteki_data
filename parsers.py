@@ -7,6 +7,7 @@ from concurrent.futures._base import TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
 from bs4 import BeautifulSoup
 import requests
+from json.decoder import JSONDecodeError
 
 import db
 from apteka import Apteka, Med, Price, NAMES_APTEK
@@ -225,6 +226,11 @@ class AptekamosParser(Parser):
                 teme_left_in_minute = int(time_left/60)
                 for response in responses:
                     index = responses.index(response)
+                    try:
+                        json.loads(response)
+                    except JSONDecodeError:
+                        print('JSONDecodeError')
+                        continue
                     ids_titles_prices_meds = Parse(response).parse_ids_titles_prices_meds_in_aptekamos()
                     for id_title_price_med in ids_titles_prices_meds:
                         med = Med(name=id_title_price_med['title'],
