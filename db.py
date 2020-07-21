@@ -210,7 +210,7 @@ def add_db_data(db_name):
 def get_apteks():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    query = f"""SELECT host_id, name, address FROM apteka"""
+    query = """SELECT host_id, name, address FROM apteka"""
     cursor.execute(query)
     data = cursor.fetchall()
     cursor.close()
