@@ -412,8 +412,8 @@ class StolichnikiParser(AptekamosParser):
                     med = Med(name=med_data['title'], url=med_data['url'], host_id=med_data['id'])
                     price = Price(apteka=aptek, med=med, rub=med_data['price'])
                     db.add_price(price)
-                    count_cicles -= 1
-                    print(f'[INFO {self.host}] Осталось {count_cicles} циклов')
+                count_cicles -= 1
+                print(f'[INFO {self.host}] Осталось {count_cicles} циклов')
             time_per_cicle = time.time() - start_time
             time_left = time_per_cicle * (len(self.apteks) - self.apteks.index(aptek))
             time_left_in_minute = int(time_left / 60)
