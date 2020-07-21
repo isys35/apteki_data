@@ -8,7 +8,7 @@ from aiohttp.client_exceptions import ClientConnectorError
 from bs4 import BeautifulSoup
 import requests
 from json.decoder import JSONDecodeError
-
+import sys
 import db
 from apteka import Apteka, Med, Price, NAMES_APTEK
 from parsing_base import Parser
@@ -142,13 +142,17 @@ class Parse:
 
 
 class AptekamosParser(Parser):
-    def __init__(self):
+    POST_URL = 'https://aptekamos.ru/Services/WOrgs/getOrgPrice4?compressOutput=1'
+
+    def __init__(self, name_parser, file_init_data):
         super().__init__()
-        self.file_init_data = "aptekamos_init_data.txt"
+        self.file_init_data = file_init_data
+        self.name_parser = name_parser
         self.host = 'https://aptekamos.ru'
         self.data_catalog_name = 'aptekamos_data'
         self.apteks = []
         self.meds = []
+        self.parsed_post_data = []
 
     def load_initial_data(self):
         with open(self.file_init_data, 'r', encoding='utf8') as file:
@@ -162,6 +166,7 @@ class AptekamosParser(Parser):
         apteks_responses = self.get_responses(apteks_urls)
         count_apteks = len(apteks_urls)
         print(f'[INFO {self.host}] Всего {count_apteks} аптек')
+        self.apteks = []
         for aptek_response_index in range(count_apteks):
             apteka = self.get_aptek(apteks_urls, apteks_responses, aptek_response_index)
             if not apteka:
@@ -196,6 +201,7 @@ class AptekamosParser(Parser):
         page_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         splited_urls = self.split_list(page_urls, 100)
         count_pages = max_page_in_catalog
+        self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
             for response in responses:
@@ -212,13 +218,13 @@ class AptekamosParser(Parser):
         self.update_meds()
         count_position = len(self.apteks) * len(self.meds)
         print(f"[INFO {self.host}] Всего {count_position} позиций для проверки")
-        post_url = self.host + '/Services/WOrgs/getOrgPrice4?compressOutput=1'
         for aptek in self.apteks:
             splited_meds = self.split_list(self.meds, 100)
             for med_list in splited_meds:
                 start_time = time.time()
-                post_urls = [post_url for _ in range(len(med_list))]
-                post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
+                post_data, post_urls = self.get_post_request_data(aptek, med_list)
+                if not post_data:
+                    continue
                 responses = self.post_responses(post_urls, post_data)
                 time_per_cicle = time.time() - start_time
                 time_left = time_per_cicle * (len(splited_meds) - splited_meds.index(med_list)) \
@@ -230,7 +236,8 @@ class AptekamosParser(Parser):
                         json.loads(response)
                     except JSONDecodeError:
                         print('JSONDecodeError')
-                        continue
+                        self.save_object(self, f'parsers/{self.name_parser}')
+                        sys.exit()
                     ids_titles_prices_meds = Parse(response).parse_ids_titles_prices_meds_in_aptekamos()
                     for id_title_price_med in ids_titles_prices_meds:
                         med = Med(name=id_title_price_med['title'],
@@ -241,8 +248,16 @@ class AptekamosParser(Parser):
                                       rub=float(id_title_price_med['price']))
                         db.add_price(price)
                     count_position -= 1
+                    self.parsed_post_data.append(post_data[index])
                     print(f"[INFO {self.host}] Осталось {count_position} позиций для проверки и примерно {teme_left_in_minute} минут")
             db.aptek_update_updtime(aptek)
+        self.parsed_post_data = []
+
+    def get_post_request_data(self, aptek, med_list):
+        post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
+        post_data = [el for el in post_data if el not in self.parsed_post_data]
+        post_urls = [self.POST_URL for _ in range(len(post_data))]
+        return post_data, post_urls
 
     @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
     def download_image_and_description(self, meds_info_objects):
@@ -426,8 +441,8 @@ class StolichnikiParser(AptekamosParser):
             meds_names_and_urls = Parse(response.text).parse_med_names_and_urls_in_stolichniki()
 
 
-
-
 if __name__ == '__main__':
-    parser = AptekamosParser()
-    parser.update_prices()
+    while True:
+        parser = Parser().load_object('parsers/aptekamos1')
+        parser.update_prices()
+        time.sleep(3000)
