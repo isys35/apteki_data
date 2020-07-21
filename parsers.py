@@ -125,7 +125,9 @@ class Parse:
                 price = price_txt.split(' ')[1]
                 product_prices_num.append(float(price))
             price_aptek_med = product_prices_num[-1]
-            meds.append({'title': title, 'id': int(id), 'price': price_aptek_med, 'url': url})
+            med = {'title': title, 'id': int(id), 'price': price_aptek_med, 'url': url}
+            print(med)
+            meds.append(med)
         return meds
 
     def parse_med_names_and_urls_in_stolichniki(self):
@@ -404,6 +406,7 @@ class StolichnikiParser(AptekamosParser):
         for aptek in self.apteks:
             start_time = time.time()
             urls_with_keys = [aptek.url + '?q=' + key for key in self.KEYS_FOR_SEARCHING]
+            print(urls_with_keys)
             count_urls = len(urls_with_keys)
             responses = self.get_responses(urls_with_keys)
             for response_index in range(count_urls):
@@ -411,6 +414,7 @@ class StolichnikiParser(AptekamosParser):
                 for med_data in meds_data:
                     med = Med(name=med_data['title'], url=med_data['url'], host_id=med_data['id'])
                     price = Price(apteka=aptek, med=med, rub=med_data['price'])
+                    print(price)
                     db.add_price(price)
                 count_cicles -= 1
                 print(f'[INFO {self.host}] Осталось {count_cicles} циклов')
@@ -434,7 +438,9 @@ class StolichnikiParser(AptekamosParser):
 
 
 if __name__ == '__main__':
-    while True:
-        parser = Parser().load_object('parsers/stolichniki')
-        parser.update_prices()
-        time.sleep(9000)
+    # while True:
+    #     parser = Parser().load_object('parsers/stolichniki')
+    #     parser.update_prices()
+    #     time.sleep(9000)
+    parser = Parser().load_object('parsers/stolichniki')
+    parser.update_prices()
