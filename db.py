@@ -2,7 +2,7 @@ import sqlite3
 import time
 import apteka
 
-DB_NAME = 'apteki.db'
+DB_NAME = 'stolichniki.db'
 
 
 def create_db():
