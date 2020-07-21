@@ -113,7 +113,7 @@ class Parse:
         for med_soup in meds_soup:
             title = med_soup.select_one('.store-info').select_one('a').text
             id = med_soup.select_one('.store-info').select_one('a')['href'].split('/')[-1]
-            url = 'https://aptekamos.ru' + med_soup.select_one('.store-info').select_one('a')['href']
+            url = 'https://stolichki.ru' + med_soup.select_one('.store-info').select_one('a')['href']
             product_prices = med_soup.select_one('.product-price').select('.price-block')
             product_prices_num = []
             for product_price in product_prices:
