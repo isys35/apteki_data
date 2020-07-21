@@ -216,28 +216,22 @@ class AptekamosParser(Parser):
     def update_prices(self):
         self.update_apteks()
         self.update_meds()
-        count_position = len(self.apteks) * len(self.meds)
-        print(f"[INFO {self.host}] Всего {count_position} позиций для проверки")
         for aptek in self.apteks:
             splited_meds = self.split_list(self.meds, 100)
             for med_list in splited_meds:
-                start_time = time.time()
                 post_data, post_urls = self.get_post_request_data(aptek, med_list)
                 if not post_data:
                     continue
                 responses = self.post_responses(post_urls, post_data)
-                time_per_cicle = time.time() - start_time
-                time_left = time_per_cicle * (len(splited_meds) - splited_meds.index(med_list)) \
-                            * (len(self.apteks) - self.apteks.index(aptek))
-                teme_left_in_minute = int(time_left/60)
                 for response in responses:
                     index = responses.index(response)
                     try:
                         json.loads(response)
                     except JSONDecodeError:
                         print('JSONDecodeError')
+                        self.save_html(response, 'page.html')
                         self.save_object(self, f'parsers/{self.name_parser}')
-                        sys.exit()
+                        return
                     ids_titles_prices_meds = Parse(response).parse_ids_titles_prices_meds_in_aptekamos()
                     for id_title_price_med in ids_titles_prices_meds:
                         med = Med(name=id_title_price_med['title'],
@@ -246,10 +240,9 @@ class AptekamosParser(Parser):
                         price = Price(med=med,
                                       apteka=aptek,
                                       rub=float(id_title_price_med['price']))
+                        print(price)
                         db.add_price(price)
-                    count_position -= 1
                     self.parsed_post_data.append(post_data[index])
-                    print(f"[INFO {self.host}] Осталось {count_position} позиций для проверки и примерно {teme_left_in_minute} минут")
             db.aptek_update_updtime(aptek)
         self.parsed_post_data = []
 
