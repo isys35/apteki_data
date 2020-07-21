@@ -436,6 +436,22 @@ class StolichnikiParser(AptekamosParser):
             response = self.request.get(url)
             meds_names_and_urls = Parse(response.text).parse_med_names_and_urls_in_stolichniki()
 
+    def sync_update_prices(self):
+        self.update_apteks()
+        count_cicles = len(self.KEYS_FOR_SEARCHING) * len(self.apteks)
+        print(f'[INFO {self.host}] Всего {count_cicles} циклов')
+        for aptek in self.apteks:
+            urls_with_keys = [aptek.url + '?q=' + key for key in self.KEYS_FOR_SEARCHING]
+            for url in urls_with_keys:
+                response = self.request.get(url).text
+                meds_data = Parse(response).parse_meds_data_in_stolichniki()
+                for med_data in meds_data:
+                    med = Med(name=med_data['title'], url=med_data['url'], host_id=med_data['id'])
+                    price = Price(apteka=aptek, med=med, rub=med_data['price'])
+                    print(price)
+                    db.add_price(price)
+            db.aptek_update_updtime(aptek)
+
 
 if __name__ == '__main__':
     # while True:
@@ -443,4 +459,4 @@ if __name__ == '__main__':
     #     parser.update_prices()
     #     time.sleep(9000)
     parser = Parser().load_object('parsers/stolichniki')
-    parser.update_prices()
+    parser.sync_update_prices()
