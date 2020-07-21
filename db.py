@@ -2,15 +2,12 @@ import sqlite3
 import time
 import apteka
 
-
 DB_NAME = 'apteki.db'
 
 
 def create_db():
     file = open(DB_NAME, 'wb')
     file.close()
-
-
 
 
 # noinspection SqlNoDataSourceInspection
@@ -161,7 +158,7 @@ def get_prices_meds(host):
                     "name": aptek[1],
                     "address": aptek[2],
                     'upd_time': aptek[3],
-                    'host_id':aptek[4]} for aptek in cursor.fetchall()]
+                    'host_id': aptek[4]} for aptek in cursor.fetchall()]
     for aptek in apteks_data:
         query = """SELECT med_id, rub
                    FROM 'price' WHERE aptek_url = ?"""
@@ -200,7 +197,8 @@ def add_db_data(db_name):
         apteka_data_query = """SELECT * FROM apteka WHERE url=?"""
         cursor.execute(apteka_data_query, [price_data[4]])
         apteka_data = cursor.fetchone()
-        aptek = apteka.Apteka(host_id=apteka_data[5], name=apteka_data[1], address=apteka_data[2], host=apteka_data[3], url=apteka_data[0])
+        aptek = apteka.Apteka(host_id=apteka_data[5], name=apteka_data[1], address=apteka_data[2], host=apteka_data[3],
+                              url=apteka_data[0])
         price = apteka.Price(rub=price_data[1], med=med, apteka=aptek)
         print(price)
         aptek_update_updtime(aptek)
@@ -218,6 +216,7 @@ def get_apteks():
     cursor.close()
     conn.close()
     return data
+
 
 if __name__ == '__main__':
     create_db()

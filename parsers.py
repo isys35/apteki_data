@@ -364,8 +364,7 @@ class StolichnikiParser(AptekamosParser):
                           list('qwertyuiopasdfghjklzxcvbnm1234567890йцукенгшщзхъфывапролджэячсмитьбю')]
 
     def __init__(self):
-        super().__init__()
-        self.file_init_data = "stolichki_init_data.txt"
+        super().__init__(name_parser='stolichniki', file_init_data='init_data/stolichki_init_data.txt')
         self.host = 'https://stolichki.ru'
         self.data_catalog_name = 'stolichniki_data'
         self.apteks = []
@@ -436,6 +435,6 @@ class StolichnikiParser(AptekamosParser):
 
 if __name__ == '__main__':
     while True:
-        parser = Parser().load_object('parsers/aptekamos1')
+        parser = Parser().load_object('parsers/stolichniki')
         parser.update_prices()
-        time.sleep(3000)
+        time.sleep(9000)
