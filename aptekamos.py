@@ -63,18 +63,14 @@ class Parse:
     def _parse_ids_title_prices_in_meds_from_html(self) -> list:
         soup = BeautifulSoup(self.response_text, 'lxml')
         product_blocks = soup.select('.product-c')
-        if not product_blocks:
-            return []
-        for product_block in product_blocks:
-            med_name = product_block.select_one('.org-product-name.function').text
-            med_price = product_block.select_one('.dialog-product-price').text
-            yield {'title': med_name, 'id': 0, 'price': med_price}
+        if product_blocks:
+            for product_block in product_blocks:
+                med_name = product_block.select_one('.org-product-name.function').text
+                med_price = product_block.select_one('.dialog-product-price').text
+                yield {'title': med_name, 'id': 0, 'price': med_price}
 
-    def parse_ids_titles_prices_in_meds(self) -> list:
-        try:
-            resp_json = json.loads(self.response_text)
-        except JSONDecodeError:
-            return self._parse_ids_title_prices_in_meds_from_html()
+    def _parse_ids_title_prices_in_meds_from_json(self) -> list:
+        resp_json = json.loads(self.response_text)
         for price_json in resp_json['price']:
             drug_id = str(price_json['drugId'])
             if drug_id == '0':
@@ -89,6 +85,15 @@ class Parse:
                 med_name = price_json['itemName']
             price = price_json['price']
             yield {'title': med_name, 'id': drug_id, 'price': price}
+
+    def parse_ids_titles_prices_in_meds(self) -> list:
+        if not 'По Вашему запросу ничего не найдено' in self.response_text:
+            print(self.response_text)
+        try:
+            resp_json = json.loads(self.response_text)
+        except JSONDecodeError:
+            return self._parse_ids_title_prices_in_meds_from_html()
+        return self._parse_ids_title_prices_in_meds_from_json()
 
 
     def parse_desriptionurl(self) -> str:
@@ -208,6 +213,7 @@ class AptekamosParser(Parser):
     @staticmethod
     def _get_prices_from_response(response: str, search_phrase: SearchPhrase) -> list:
         ids_titles_prices_in_meds = Parse(response).parse_ids_titles_prices_in_meds()
+        print(list(ids_titles_prices_in_meds))
         for id_title_price_in_med in ids_titles_prices_in_meds:
             med = Med(name=id_title_price_in_med['title'],
                       url=search_phrase.med.url,
