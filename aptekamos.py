@@ -60,9 +60,21 @@ class Parse:
                 meds.append({'name': name, 'id': id, 'url': url})
         return meds
 
+    def _parse_ids_title_prices_in_meds_from_html(self) -> list:
+        soup = BeautifulSoup(self.response_text, 'lxml')
+        product_blocks = soup.select('.product-c')
+        if not product_blocks:
+            return []
+        for product_block in product_blocks:
+            med_name = product_block.select_one('.org-product-name.function').text
+            med_price = product_block.select_one('.dialog-product-price').text
+            yield {'title': med_name, 'id': 0, 'price': med_price}
+
     def parse_ids_titles_prices_in_meds(self) -> list:
-        resp_json = json.loads(self.response_text)
-        data_meds = []
+        try:
+            resp_json = json.loads(self.response_text)
+        except JSONDecodeError:
+            return self._parse_ids_title_prices_in_meds_from_html()
         for price_json in resp_json['price']:
             drug_id = str(price_json['drugId'])
             if drug_id == '0':
@@ -76,8 +88,8 @@ class Parse:
             if not med_name:
                 med_name = price_json['itemName']
             price = price_json['price']
-            data_meds.append({'title': med_name, 'id': drug_id, 'price': price})
-        return data_meds
+            yield {'title': med_name, 'id': drug_id, 'price': price}
+
 
     def parse_desriptionurl(self) -> str:
         soup = BeautifulSoup(self.response_text, 'lxml')
@@ -170,15 +182,28 @@ class AptekamosParser(Parser):
         self.update_meds()
         all_search_phrases = self._get_all_post_data()
         for search_phrase in all_search_phrases:
-            print(search_phrase.post_data['searchPhrase'])
-            response = self.request.post(self.POST_URL, json_data=search_phrase.post_data)
-            prices = self._get_prices_from_response(response.text, search_phrase)
+            INFO = f'[INFO {self.host}] apteka {self.apteks.index(search_phrase.apteka)}/{len(self.apteks)}'\
+                   f' med {self.meds.index(search_phrase.med)}/{len(self.meds)}'
+            print(INFO)
+            response = self._get_response(search_phrase)
+            prices = self._get_prices_from_response(response, search_phrase)
             for price in prices:
                 print(price)
                 db.add_price(price)
             self.parsed_post_data.append(search_phrase.post_data)
             self.save_object(self, f'parsers/{self.name_parser}')
             db.aptek_update_updtime(search_phrase.apteka) # Обновление времении внести в модуль db
+
+    def _get_response(self, search_phrase: SearchPhrase) -> str:
+        response = self.request.post(self.POST_URL, json_data=search_phrase.post_data)
+        if response.status_code == 403:
+            aptek_url = search_phrase.apteka.url.replace('ob-apteke', '')
+            url = f"{aptek_url}price-list?q={search_phrase.post_data['searchPhrase']}&i=&deliv=0&rsrv=0&sale=0&_={int(time.time() * 1000)}"
+            response = self.request.get(url)
+            if response.status_code != 200:
+                print(response)
+                sys.exit()
+        return response.text
 
     @staticmethod
     def _get_prices_from_response(response: str, search_phrase: SearchPhrase) -> list:
@@ -299,7 +324,7 @@ class AptekamosParser(Parser):
 
 
 
+
 if __name__ == '__main__':
     parser = Parser().load_object('parsers/aptekamos')
     parser.update_prices()
-
