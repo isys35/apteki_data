@@ -164,6 +164,7 @@ class AptekamosParser(Parser):
         self.update_meds()
         all_post_data = self._get_all_post_data()
         print(all_post_data)
+        self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_all_post_data(self) -> list:
         for aptek in self.apteks:
