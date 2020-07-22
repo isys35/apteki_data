@@ -5,7 +5,7 @@ import asyncio, aiohttp
 from urllib.parse import unquote, quote
 import pickle
 import httplib2
-
+import time
 
 def border_method_info(pre_info, post_info):
     def decorator(func):
@@ -65,7 +65,12 @@ class Request:
 
     def get(self, url, headers=None):
         if headers is None:
-            response = requests.get(url, headers=self.headers)
+            try:
+                response = requests.get(url, headers=self.headers)
+            except ConnectionError:
+                print(ConnectionError)
+                time.sleep(60)
+                return self.get(url, headers)
         else:
             response = requests.get(url, headers=headers)
         if response.status_code == 200:
