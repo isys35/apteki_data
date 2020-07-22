@@ -78,6 +78,7 @@ def get_med_id(price):
 
 
 def add_price(price):
+    print(f'add price {price}')
     aptek_url = get_aptek_url(price)
     med_id = get_med_id(price)
     conn = sqlite3.connect(DB_NAME)

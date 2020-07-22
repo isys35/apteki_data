@@ -193,8 +193,7 @@ class AptekamosParser(Parser):
             print(INFO)
             response = self._get_response(search_phrase)
             prices = self._get_prices_from_response(response, search_phrase)
-            print(list(prices))
-            for price in list(prices): # почему не интерируется цена?
+            for price in prices: # почему не интерируется цена?
                 print(price)
                 db.add_price(price)
             self.parsed_post_data.append(search_phrase.post_data)
