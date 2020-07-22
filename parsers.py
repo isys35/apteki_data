@@ -334,7 +334,11 @@ class AptekamosParser(Parser):
         except (ClientConnectorError, TimeoutError):
             responses = []
             for id in range(len(post_urls)):
-                response = self.request.post(post_urls[id], json_data=post_data[id])
+                try:
+                    response = self.request.post(post_urls[id], json_data=post_data[id])
+                except (ClientConnectorError, TimeoutError):
+                    time.sleep(200)
+                    return self.post_responses(post_urls, post_data)
                 responses.append(response.text)
         return responses
 
@@ -454,9 +458,11 @@ class StolichnikiParser(AptekamosParser):
 
 
 if __name__ == '__main__':
-    # while True:
-    #     parser = Parser().load_object('parsers/stolichniki')
-    #     parser.update_prices()
-    #     time.sleep(9000)
-    parser = Parser().load_object('parsers/stolichniki')
-    parser.sync_update_prices()
+   while True:
+        parsers = [Parser().load_object('parsers/aptekamos1'),
+                   Parser().load_object('parsers/aptekamos2'),
+                   Parser().load_object('parsers/aptekamos3'),
+                   Parser().load_object('parsers/aptekamos4')]
+        for parser in parsers:
+            parser.update_prices()
+            time.sleep(3000)
