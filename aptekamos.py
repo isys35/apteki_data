@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 from typing import Union
 from dataclasses import dataclass
-
+import unicodedata
 from concurrent.futures._base import TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
 from bs4 import BeautifulSoup
@@ -67,6 +67,10 @@ class Parse:
             for product_block in product_blocks:
                 med_name = product_block.select_one('.org-product-name.function').text
                 med_price = product_block.select_one('.dialog-product-price').text
+                splited_med_name = med_name.split(' ')
+                index_number = splited_med_name.index('№')
+                med_name = ' '.join(splited_med_name[:index_number+2])
+                med_price = unicodedata.normalize("NFKD", med_price).replace(' ','')
                 yield {'title': med_name, 'id': 0, 'price': med_price}
 
     def _parse_ids_title_prices_in_meds_from_json(self) -> list:
@@ -87,14 +91,11 @@ class Parse:
             yield {'title': med_name, 'id': drug_id, 'price': price}
 
     def parse_ids_titles_prices_in_meds(self) -> list:
-        if not 'По Вашему запросу ничего не найдено' in self.response_text:
-            print(self.response_text)
         try:
             resp_json = json.loads(self.response_text)
         except JSONDecodeError:
             return self._parse_ids_title_prices_in_meds_from_html()
         return self._parse_ids_title_prices_in_meds_from_json()
-
 
     def parse_desriptionurl(self) -> str:
         soup = BeautifulSoup(self.response_text, 'lxml')
@@ -192,7 +193,8 @@ class AptekamosParser(Parser):
             print(INFO)
             response = self._get_response(search_phrase)
             prices = self._get_prices_from_response(response, search_phrase)
-            for price in prices:
+            print(list(prices))
+            for price in list(prices): # почему не интерируется цена?
                 print(price)
                 db.add_price(price)
             self.parsed_post_data.append(search_phrase.post_data)
@@ -213,7 +215,6 @@ class AptekamosParser(Parser):
     @staticmethod
     def _get_prices_from_response(response: str, search_phrase: SearchPhrase) -> list:
         ids_titles_prices_in_meds = Parse(response).parse_ids_titles_prices_in_meds()
-        print(list(ids_titles_prices_in_meds))
         for id_title_price_in_med in ids_titles_prices_in_meds:
             med = Med(name=id_title_price_in_med['title'],
                       url=search_phrase.med.url,
