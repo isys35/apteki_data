@@ -7,6 +7,16 @@ import pickle
 import httplib2
 
 
+def border_method_info(pre_info, post_info):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            print(f'[INFO {args[0].host}] {pre_info}')
+            func(*args, **kwargs)
+            print(f'[INFO {args[0].host}] {post_info}')
+        return wrapper
+    return decorator
+
+
 class Parser:
     def __init__(self):
         self.request = Request()
@@ -70,8 +80,6 @@ class Request:
         else:
             response = requests.post(url, headers=headers, json=json_data)
         if response.status_code == 200:
-            return response
-        if response.status_code == 500:
             return response
         else:
             print(response)

@@ -2,6 +2,7 @@ import json
 import os
 import time
 from urllib.parse import quote
+from typing import Union
 
 from concurrent.futures._base import TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
@@ -146,7 +147,7 @@ class Parse:
 class AptekamosParser(Parser):
     POST_URL = 'https://aptekamos.ru/Services/WOrgs/getOrgPrice4?compressOutput=1'
 
-    def __init__(self, name_parser, file_init_data):
+    def __init__(self, name_parser: str, file_init_data: str) -> None:
         super().__init__()
         self.file_init_data = file_init_data
         self.name_parser = name_parser
@@ -156,37 +157,36 @@ class AptekamosParser(Parser):
         self.meds = []
         self.parsed_post_data = []
 
-    def load_initial_data(self):
+    def load_initial_data(self) -> list:
         with open(self.file_init_data, 'r', encoding='utf8') as file:
             initial_data = file.read()
         apteks_urls = initial_data.split('\n')
         return apteks_urls
 
     @border_method_info(f'Обновление аптек...', 'Обновление аптек завершено.')
-    def update_apteks(self):
+    def update_apteks(self) -> None:
+        if self.apteks:
+            return
         apteks_urls = self.load_initial_data()
         apteks_responses = self.get_responses(apteks_urls)
-        count_apteks = len(apteks_urls)
-        print(f'[INFO {self.host}] Всего {count_apteks} аптек')
-        self.apteks = []
-        for aptek_response_index in range(count_apteks):
-            apteka = self.get_aptek(apteks_urls, apteks_responses, aptek_response_index)
+        for aptek_response_index in range(len(apteks_responses)):
+            apteka = self._get_aptek(apteks_urls[aptek_response_index], apteks_responses[aptek_response_index])
             if not apteka:
                 continue
             self.apteks.append(apteka)
-            print(f'[INFO {self.host}] Осталось {count_apteks-aptek_response_index} аптек')
 
-    def get_aptek(self, apteks_urls, apteks_responses, aptek_response_index):
-        header_aptek = Parse(apteks_responses[aptek_response_index]).parse_header_aptek_in_aptekamos()
+    def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
+        """Получение аптек из запроса"""
+        header_aptek = Parse(apteks_response).parse_header_aptek_in_aptekamos()
         if not header_aptek:
-            return
+            return None
         aptek_name = str()
         for name in NAMES_APTEK:
             if name in header_aptek:
                 aptek_name = name
                 break
-        aptek_address = Parse(apteks_responses[aptek_response_index]).parse_adress_aptek_in_aptekamos()
-        aptek_url = apteks_urls[aptek_response_index]
+        aptek_address = Parse(apteks_response).parse_adress_aptek_in_aptekamos()
+        aptek_url = aptek_url
         aptek_id = aptek_url.replace('/ob-apteke', '').split('-')[-1]
         return Apteka(name=aptek_name,
                       url=aptek_url,
@@ -195,14 +195,14 @@ class AptekamosParser(Parser):
                       host_id=int(aptek_id))
 
     @border_method_info('Обновление лекарств...', 'Обновление лекарств завершено.')
-    def update_meds(self):
+    def update_meds(self) -> None:
+        if self.meds:
+            return
         response = self.request.get(self.host + '/tovary')
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalog_in_aptekamos()
-        print(f"[INFO {self.host}] Всего {max_page_in_catalog} страниц в каталоге")
         page_urls = [self.host + '/tovary']
         page_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         splited_urls = self.split_list(page_urls, 100)
-        count_pages = max_page_in_catalog
         self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
@@ -211,42 +211,48 @@ class AptekamosParser(Parser):
                 for name_url_id_med in names_urls_ids_meds:
                     med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
                     self.meds.append(med)
-                count_pages -= 1
-                print(f"[INFO {self.host}] Осталось {count_pages} страниц в каталоге")
 
-    @border_method_info('Обновление цен...', 'Обновление цен завершено.')
+    @border_method_info('Обtmux новление цен...', 'Обновление цен завершено.')
     def update_prices(self):
         self.update_apteks()
         self.update_meds()
-        for aptek in self.apteks:
+        for aptek_index in range(len(self.apteks)):
+            aptek = self.apteks[aptek_index]
             splited_meds = self.split_list(self.meds, 100)
-            for med_list in splited_meds:
+            for med_list_index in range(len(splited_meds)):
+                med_list = splited_meds[med_list_index]
                 post_data, post_urls = self.get_post_request_data(aptek, med_list)
                 if not post_data:
                     continue
                 responses = self.post_responses(post_urls, post_data)
-                for response in responses:
-                    index = responses.index(response)
+                for response_index in range(len(responses)):
+                    print(f' aptek {aptek_index}/{len(self.apteks)-1};\n'
+                          f' med_list {med_list_index}/{len(splited_meds)-1};\n'
+                          f' response {response_index}/{len(responses)-1}')
                     try:
-                        json.loads(response)
+                        json.loads(responses[response_index])
                     except JSONDecodeError:
                         print('JSONDecodeError')
-                        self.save_html(response, 'page.html')
                         self.save_object(self, f'parsers/{self.name_parser}')
                         return
-                    ids_titles_prices_meds = Parse(response).parse_ids_titles_prices_meds_in_aptekamos()
+                    ids_titles_prices_meds = Parse(responses[response_index]).parse_ids_titles_prices_meds_in_aptekamos()
                     for id_title_price_med in ids_titles_prices_meds:
                         med = Med(name=id_title_price_med['title'],
-                                  url=med_list[index].url,
+                                  url=med_list[response_index].url,
                                   host_id=id_title_price_med['id'])
                         price = Price(med=med,
                                       apteka=aptek,
                                       rub=float(id_title_price_med['price']))
                         print(price)
                         db.add_price(price)
-                    self.parsed_post_data.append(post_data[index])
+                    self.parsed_post_data.append(post_data[response_index])
+                    self.save_object(self, f'parsers/{self.name_parser}')
             db.aptek_update_updtime(aptek)
         self.parsed_post_data = []
+        self.apteks = []
+        self.meds = []
+
+
 
     def get_post_request_data(self, aptek, med_list):
         post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
@@ -408,6 +414,34 @@ class StolichnikiParser(AptekamosParser):
         count_cicles = len(self.KEYS_FOR_SEARCHING) * len(self.apteks)
         print(f'[INFO {self.host}] Всего {count_cicles} циклов')
         for aptek in self.apteks:
+            urls_with_keys = [aptek.url + '?q=' + key for key in self.KEYS_FOR_SEARCHING]
+            for url in urls_with_keys:
+                response = self.request.get(url).text
+                meds_data = Parse(response).parse_meds_data_in_stolichniki()
+                for med_data in meds_data:
+                    med = Med(name=med_data['title'], url=med_data['url'], host_id=med_data['id'])
+                    price = Price(apteka=aptek, med=med, rub=med_data['price'])
+                    print(price)
+                    db.add_price(price)
+            db.aptek_update_updtime(aptek)
+
+    @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
+    def download_image_and_description(self, meds_info_objects):
+        print(f'[INFO {self.host}] Проверка наличия препаратов на сайте')
+        meds = [med for med in meds_info_objects if not med.description_url]
+        count_meds = len(meds)
+        print(f'[INFO {self.host}] Всего {count_meds} препаратов')
+        for med in meds:
+            start_time = time.time()
+            url = f'{self.host}/search?name={quote(med.name)}'
+            response = self.request.get(url)
+            meds_names_and_urls = Parse(response.text).parse_med_names_and_urls_in_stolichniki()
+
+    def async_update_prices(self):
+        self.update_apteks()
+        count_cicles = len(self.KEYS_FOR_SEARCHING) * len(self.apteks)
+        print(f'[INFO {self.host}] Всего {count_cicles} циклов')
+        for aptek in self.apteks:
             start_time = time.time()
             urls_with_keys = [aptek.url + '?q=' + key for key in self.KEYS_FOR_SEARCHING]
             print(urls_with_keys)
@@ -428,41 +462,13 @@ class StolichnikiParser(AptekamosParser):
             print(f'[INFO {self.host}] Осталось примерно {time_left_in_minute} минут')
             db.aptek_update_updtime(aptek)
 
-    @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
-    def download_image_and_description(self, meds_info_objects):
-        print(f'[INFO {self.host}] Проверка наличия препаратов на сайте')
-        meds = [med for med in meds_info_objects if not med.description_url]
-        count_meds = len(meds)
-        print(f'[INFO {self.host}] Всего {count_meds} препаратов')
-        for med in meds:
-            start_time = time.time()
-            url = f'{self.host}/search?name={quote(med.name)}'
-            response = self.request.get(url)
-            meds_names_and_urls = Parse(response.text).parse_med_names_and_urls_in_stolichniki()
-
-    def sync_update_prices(self):
-        self.update_apteks()
-        count_cicles = len(self.KEYS_FOR_SEARCHING) * len(self.apteks)
-        print(f'[INFO {self.host}] Всего {count_cicles} циклов')
-        for aptek in self.apteks:
-            urls_with_keys = [aptek.url + '?q=' + key for key in self.KEYS_FOR_SEARCHING]
-            for url in urls_with_keys:
-                response = self.request.get(url).text
-                meds_data = Parse(response).parse_meds_data_in_stolichniki()
-                for med_data in meds_data:
-                    med = Med(name=med_data['title'], url=med_data['url'], host_id=med_data['id'])
-                    price = Price(apteka=aptek, med=med, rub=med_data['price'])
-                    print(price)
-                    db.add_price(price)
-            db.aptek_update_updtime(aptek)
-
 
 if __name__ == '__main__':
    while True:
         parsers = [Parser().load_object('parsers/aptekamos1'),
+                   Parser().load_object('parsers/stolichniki'),
                    Parser().load_object('parsers/aptekamos2'),
                    Parser().load_object('parsers/aptekamos3'),
                    Parser().load_object('parsers/aptekamos4')]
         for parser in parsers:
             parser.update_prices()
-            time.sleep(3000)
