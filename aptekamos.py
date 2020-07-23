@@ -14,6 +14,8 @@ import sys
 import db
 from apteka import Apteka, Med, Price, NAMES_APTEK
 from parsing_base import Parser, border_method_info
+from typing import Iterator
+from requests import Response
 
 @dataclass
 class SearchPhrase:
@@ -200,6 +202,44 @@ class AptekamosParser(Parser):
             self.save_object(self, f'parsers/{self.name_parser}')
             db.aptek_update_updtime(search_phrase.apteka) # Обновление времении внести в модуль db
 
+    @border_method_info('Обновление цен...', 'Обновление цен завершено.')
+    def async_update_prices(self):
+        self.update_apteks()
+        self.update_meds()
+        all_search_phrases = self._get_all_post_data()
+        splited_search_phrases = self._split_generator(all_search_phrases, 100)
+        for list_search_phrases in splited_search_phrases:
+            post_urls = [self.POST_URL for _ in range(len(list_search_phrases))]
+            post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
+            json_responses = self.post_responses(post_urls, post_data)
+            list_search_phrases_for_get_request = []
+            for index_search_phrase in range(len(list_search_phrases)):
+                if not self._is_json_response(json_responses[index_search_phrase]):
+                    list_search_phrases_for_get_request.append(list_search_phrases[index_search_phrase])
+            print(len(list_search_phrases_for_get_request))
+
+
+    @staticmethod
+    def _is_json_response(response: str) -> bool:
+        try:
+            json.loads(response)
+            return True
+        except JSONDecodeError:
+            return False
+
+    @staticmethod
+    def _split_generator(lst: Iterator[SearchPhrase], size_lst: int) -> Iterator[list]:
+        count = 0
+        splited_list = []
+        for el in lst:
+            count += 1
+            splited_list.append(el)
+            if count == size_lst:
+                yield splited_list
+                count = 0
+                splited_list = []
+        yield splited_list
+
     def _get_response(self, search_phrase: SearchPhrase) -> str:
         response = self.request.post(self.POST_URL, json_data=search_phrase.post_data)
         if response.status_code == 403:
@@ -314,18 +354,11 @@ class AptekamosParser(Parser):
             resps = [self.request.get(url).text for url in urls]
         return resps
 
-    def post_responses(self, post_urls, post_data):
+    def post_responses(self, post_urls: list, post_data: list) -> list:
         try:
             responses = self.requests.post(post_urls, json_data=post_data)
         except (ClientConnectorError, TimeoutError):
-            responses = []
-            for id in range(len(post_urls)):
-                try:
-                    response = self.request.post(post_urls[id], json_data=post_data[id])
-                except (ClientConnectorError, TimeoutError):
-                    time.sleep(200)
-                    return self.post_responses(post_urls, post_data)
-                responses.append(response.text)
+            responses = [self.request.post(post_urls[i], json_data=post_data[i]) for i in range(len(post_urls))]
         return responses
 
 
@@ -333,4 +366,4 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     parser = Parser().load_object('parsers/aptekamos')
-    parser.update_prices()
+    parser.async_update_prices()
