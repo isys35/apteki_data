@@ -215,11 +215,11 @@ class AptekamosParser(Parser):
             for price in prices:
                 db.add_price(price)
             for search_phrase in list_search_phrases:
-                INFO = f'[INFO {self.host}] apteka {self.apteks.index(search_phrase.apteka)}/{len(self.apteks)}' \
-                       f' med {self.meds.index(search_phrase.med)}/{len(self.meds)}'
-                print(INFO)
                 self.parsed_post_data.append(search_phrase.post_data)
                 db.aptek_update_updtime(search_phrase.apteka)
+            INFO = f'[INFO {self.host}] apteka {self.apteks.index(list_search_phrases[-1].apteka)}/{len(self.apteks)}' \
+                   f' med {self.meds.index(list_search_phrases[-1].med)}/{len(self.meds)}'
+            print(INFO)
             self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_prices_from_list_search_phrases(self, list_search_phrases: list) -> Iterator[Price]:
