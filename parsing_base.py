@@ -77,6 +77,7 @@ class Request:
             return response
         else:
             print(url)
+            print(response.text)
             print(response)
             sys.exit()
 
