@@ -17,17 +17,19 @@ from parsing_base import Parser, border_method_info
 from typing import Iterator
 from requests import Response
 
+
 @dataclass
 class SearchPhrase:
     med: Med
     apteka: Apteka
     post_data: dict
 
+
 class Parse:
     def __init__(self, response_text):
         self.response_text = response_text
 
-    def parse_header_aptek(self) -> Union[str,None]:
+    def parse_header_aptek(self) -> Union[str, None]:
         soup = BeautifulSoup(self.response_text, 'lxml')
         main_header_block = soup.select_one('#main-header')
         if not main_header_block:
@@ -71,8 +73,8 @@ class Parse:
                 med_price = product_block.select_one('.dialog-product-price').text
                 splited_med_name = med_name.split(' ')
                 index_number = splited_med_name.index('№')
-                med_name = ' '.join(splited_med_name[:index_number+2])
-                med_price = unicodedata.normalize("NFKD", med_price).replace(' ','')
+                med_name = ' '.join(splited_med_name[:index_number + 2])
+                med_price = unicodedata.normalize("NFKD", med_price).replace(' ', '')
                 yield {'title': med_name, 'id': 0, 'price': med_price}
 
     def _parse_ids_title_prices_in_meds_from_json(self) -> list:
@@ -190,17 +192,17 @@ class AptekamosParser(Parser):
         self.update_meds()
         all_search_phrases = self._get_all_post_data()
         for search_phrase in all_search_phrases:
-            INFO = f'[INFO {self.host}] apteka {self.apteks.index(search_phrase.apteka)}/{len(self.apteks)}'\
+            INFO = f'[INFO {self.host}] apteka {self.apteks.index(search_phrase.apteka)}/{len(self.apteks)}' \
                    f' med {self.meds.index(search_phrase.med)}/{len(self.meds)}'
             print(INFO)
             response = self._get_response(search_phrase)
             prices = self._get_prices_from_response(response, search_phrase)
-            for price in prices: # почему не интерируется цена?
+            for price in prices:  # почему не интерируется цена?
                 print(price)
                 db.add_price(price)
             self.parsed_post_data.append(search_phrase.post_data)
             self.save_object(self, f'parsers/{self.name_parser}')
-            db.aptek_update_updtime(search_phrase.apteka) # Обновление времении внести в модуль db
+            db.aptek_update_updtime(search_phrase.apteka)  # Обновление времении внести в модуль db
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def async_update_prices(self):
@@ -209,25 +211,46 @@ class AptekamosParser(Parser):
         all_search_phrases = self._get_all_post_data()
         splited_search_phrases = self._split_generator(all_search_phrases, 100)
         for list_search_phrases in splited_search_phrases:
-            post_urls = [self.POST_URL for _ in range(len(list_search_phrases))]
-            post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
-            json_responses = self.post_responses(post_urls, post_data)
-            list_search_phrases_for_get_request = []
-            all_json_prices = []
-            for index_search_phrase in range(len(list_search_phrases)):
-                if not self._is_json_response(json_responses[index_search_phrase]):
-                    list_search_phrases_for_get_request.append(list_search_phrases[index_search_phrase])
-                    json_prices = self._get_prices_from_response(json_responses[index_search_phrase],
-                                                                 list_search_phrases[index_search_phrase])
-                    all_json_prices.append(json_prices)
-            get_urls = self._get_urls_for_get_requests(list_search_phrases_for_get_request)
-            html_responses = self.get_responses(get_urls)
-            all_html_prices = []
-            for index_search_phrase in range(len(list_search_phrases_for_get_request)):
-                html_prices = self._get_prices_from_response(html_responses[index_search_phrase],
-                                                             list_search_phrases_for_get_request[index_search_phrase])
-                all_html_prices.append(html_prices)
-            print(len(all_json_prices), len(all_html_prices))
+            prices = self._get_prices_from_list_search_phrases(list_search_phrases)
+            for price in prices:
+                db.add_price(price)
+
+    def _get_prices_from_list_search_phrases(self, list_search_phrases: list) -> Iterator[Price]:
+        json_prices = self._get_prices_from_json(list_search_phrases)
+        html_prices = self._get_prices_from_html(list_search_phrases)
+        prices_generators = json_prices.extend(html_prices)
+        for prices_generator in prices_generators:
+            for price in prices_generator:
+                yield price
+
+    def _get_prices_from_json(self, list_search_phrases: list) -> list:
+        post_urls = [self.POST_URL for _ in range(len(list_search_phrases))]
+        post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
+        json_responses = self.post_responses(post_urls, post_data)
+        all_json_prices = []
+        for index_search_phrase in range(len(list_search_phrases)):
+            if self._is_json_response(json_responses[index_search_phrase]):
+                json_prices = self._get_prices_from_response(json_responses[index_search_phrase],
+                                                             list_search_phrases[index_search_phrase])
+                all_json_prices.append(json_prices)
+        return all_json_prices
+
+    def _get_prices_from_html(self, list_search_phrases: list) -> list:
+        post_urls = [self.POST_URL for _ in range(len(list_search_phrases))]
+        post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
+        json_responses = self.post_responses(post_urls, post_data)
+        list_search_phrases_for_get_request = []
+        for index_search_phrase in range(len(list_search_phrases)):
+            if not self._is_json_response(json_responses[index_search_phrase]):
+                list_search_phrases_for_get_request.append(list_search_phrases[index_search_phrase])
+        get_urls = self._get_urls_for_get_requests(list_search_phrases_for_get_request)
+        html_responses = self.get_responses(get_urls)
+        all_html_prices = []
+        for index_search_phrase in range(len(list_search_phrases_for_get_request)):
+            html_prices = self._get_prices_from_response(html_responses[index_search_phrase],
+                                                         list_search_phrases_for_get_request[index_search_phrase])
+            all_html_prices.append(html_prices)
+        return all_html_prices
 
     @staticmethod
     def _get_urls_for_get_requests(search_phrases: list) -> list:
@@ -289,9 +312,9 @@ class AptekamosParser(Parser):
                 if post_data not in self.parsed_post_data:
                     search_phrase = SearchPhrase(med=med,
                                                  apteka=aptek,
-                                                 post_data={"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name})
+                                                 post_data={"orgId": int(aptek.host_id), "wuserId": 0,
+                                                            "searchPhrase": med.name})
                     yield search_phrase
-
 
     def get_post_request_data(self, aptek, med_list):
         post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
@@ -321,7 +344,7 @@ class AptekamosParser(Parser):
                     med.set_description_url(description_url)
                 count_meds -= 1
                 print(f'[INFO {self.host}] Осталось {count_meds} препаратов и примерно {time_left_in_minute} минут')
-        self.save_object(meds, 'meds_info') # ДЛЯ ДЕБАГА !! УДАЛИТЬ
+        self.save_object(meds, 'meds_info')  # ДЛЯ ДЕБАГА !! УДАЛИТЬ
         print(f'[INFO {self.host}] Все препараты проверены')
         self.get_image_and_description(meds)
 
@@ -379,8 +402,6 @@ class AptekamosParser(Parser):
         except (ClientConnectorError, TimeoutError):
             responses = [self.request.post(post_urls[i], json_data=post_data[i]) for i in range(len(post_urls))]
         return responses
-
-
 
 
 if __name__ == '__main__':
