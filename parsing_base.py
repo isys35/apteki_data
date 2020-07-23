@@ -77,7 +77,7 @@ class Request:
             return response
         else:
             print(url)
-            print(response.text)
+            Parser().save_html(response.text, 'response.html')
             print(response)
             sys.exit()
 
