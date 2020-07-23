@@ -73,7 +73,10 @@ class Parse:
                 med_price = product_block.select_one('.dialog-product-price').text
                 if '№' in med_name:
                     splited_med_name = med_name.split(' ')
-                    index_number = splited_med_name.index('№')
+                    try:
+                        index_number = splited_med_name.index('№')
+                    except ValueError:
+                        print(med_name)
                     med_name = ' '.join(splited_med_name[:index_number + 2])
                 med_price = unicodedata.normalize("NFKD", med_price).replace(' ', '')
                 yield {'title': med_name, 'id': 0, 'price': med_price}
