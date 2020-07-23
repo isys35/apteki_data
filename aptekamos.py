@@ -213,11 +213,30 @@ class AptekamosParser(Parser):
             post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
             json_responses = self.post_responses(post_urls, post_data)
             list_search_phrases_for_get_request = []
+            all_json_prices = []
             for index_search_phrase in range(len(list_search_phrases)):
                 if not self._is_json_response(json_responses[index_search_phrase]):
                     list_search_phrases_for_get_request.append(list_search_phrases[index_search_phrase])
-            print(len(list_search_phrases_for_get_request))
+                    json_prices = self._get_prices_from_response(json_responses[index_search_phrase],
+                                                                 list_search_phrases[index_search_phrase])
+                    all_json_prices.append(json_prices)
+            get_urls = self._get_urls_for_get_requests(list_search_phrases_for_get_request)
+            html_responses = self.get_responses(get_urls)
+            all_html_prices = []
+            for index_search_phrase in range(len(list_search_phrases_for_get_request)):
+                html_prices = self._get_prices_from_response(html_responses[index_search_phrase],
+                                                             list_search_phrases_for_get_request[index_search_phrase])
+                all_html_prices.append(html_prices)
+            print(len(all_json_prices), len(all_html_prices))
 
+    @staticmethod
+    def _get_urls_for_get_requests(search_phrases: list) -> list:
+        urls = []
+        for search_phrase in search_phrases:
+            aptek_url = search_phrase.apteka.url.replace('ob-apteke', '')
+            url = f"{aptek_url}price-list?q={search_phrase.post_data['searchPhrase']}&i=&deliv=0&rsrv=0&sale=0&_={int(time.time() * 1000)}"
+            urls.append(url)
+        return urls
 
     @staticmethod
     def _is_json_response(response: str) -> bool:
@@ -347,12 +366,12 @@ class AptekamosParser(Parser):
             urls.append(url)
         return urls
 
-    def get_responses(self, urls):
+    def get_responses(self, urls: list) -> list:
         try:
-            resps = self.requests.get(urls)
+            responses = self.requests.get(urls)
         except (ClientConnectorError, TimeoutError):
-            resps = [self.request.get(url).text for url in urls]
-        return resps
+            responses = [self.request.get(url).text for url in urls]
+        return responses
 
     def post_responses(self, post_urls: list, post_data: list) -> list:
         try:
