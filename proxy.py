@@ -16,6 +16,7 @@ class FreeProxyCZ(Parser):
         resp = self.request.get(self.HOST)
         soup = BeautifulSoup(resp.text, 'lxml')
         self.proxies_list = self._get_proxies_from_soup(soup)
+        print(self.proxies_list)
 
     @staticmethod
     def _get_proxies_from_soup(soup: BeautifulSoup) -> list:
