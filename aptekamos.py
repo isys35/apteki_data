@@ -218,8 +218,8 @@ class AptekamosParser(Parser):
     def _get_prices_from_list_search_phrases(self, list_search_phrases: list) -> Iterator[Price]:
         json_prices = self._get_prices_from_json(list_search_phrases)
         html_prices = self._get_prices_from_html(list_search_phrases)
-        prices_generators = json_prices.extend(html_prices)
-        for prices_generator in prices_generators:
+        json_prices.extend(html_prices)
+        for prices_generator in json_prices:
             for price in prices_generator:
                 yield price
 
