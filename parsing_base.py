@@ -76,6 +76,7 @@ class Request:
         if response.status_code == 200:
             return response
         else:
+            print(url)
             print(response)
             sys.exit()
 
