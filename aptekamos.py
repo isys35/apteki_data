@@ -71,9 +71,10 @@ class Parse:
             for product_block in product_blocks:
                 med_name = product_block.select_one('.org-product-name.function').text
                 med_price = product_block.select_one('.dialog-product-price').text
-                splited_med_name = med_name.split(' ')
-                index_number = splited_med_name.index('№')
-                med_name = ' '.join(splited_med_name[:index_number + 2])
+                if '№' in med_name:
+                    splited_med_name = med_name.split(' ')
+                    index_number = splited_med_name.index('№')
+                    med_name = ' '.join(splited_med_name[:index_number + 2])
                 med_price = unicodedata.normalize("NFKD", med_price).replace(' ', '')
                 yield {'title': med_name, 'id': 0, 'price': med_price}
 
@@ -323,11 +324,6 @@ class AptekamosParser(Parser):
                                                             "searchPhrase": med.name})
                     yield search_phrase
 
-    def get_post_request_data(self, aptek, med_list):
-        post_data = [{"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name} for med in med_list]
-        post_data = [el for el in post_data if el not in self.parsed_post_data]
-        post_urls = [self.POST_URL for _ in range(len(post_data))]
-        return post_data, post_urls
 
     @border_method_info('Скачивание картинок и описания...', 'Скачивание картинок и описания завершено.')
     def download_image_and_description(self, meds_info_objects):
