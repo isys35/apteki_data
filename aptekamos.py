@@ -213,6 +213,7 @@ class AptekamosParser(Parser):
         all_search_phrases = self._get_all_post_data()
         splited_search_phrases = self._split_generator(all_search_phrases, 100)
         for list_search_phrases in splited_search_phrases:
+            print('***')
             prices = self._get_prices_from_list_search_phrases(list_search_phrases)
             for price in prices:
                 db.add_price(price)
