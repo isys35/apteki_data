@@ -73,9 +73,9 @@ class Parse:
                 med_price = product_block.select_one('.dialog-product-price').text
                 if '№' in med_name:
                     splited_med_name = med_name.split(' ')
-                    index_number = splited_med_name.index('№')
-                    print(index_number)
-                    med_name = ' '.join(splited_med_name[:index_number + 2])
+                    if '№' in splited_med_name:
+                        index_number = splited_med_name.index('№')
+                        med_name = ' '.join(splited_med_name[:index_number + 2])
                 med_price = unicodedata.normalize("NFKD", med_price).replace(' ', '')
                 yield {'title': med_name, 'id': 0, 'price': med_price}
 
@@ -315,7 +315,7 @@ class AptekamosParser(Parser):
                           rub=float(id_title_price_in_med['price']))
             yield price
 
-    def _get_all_post_data(self) -> list:
+    def _get_all_post_data(self) -> Iterator[SearchPhrase]:
         for aptek in self.apteks:
             for med in self.meds:
                 post_data = {"orgId": int(aptek.host_id), "wuserId": 0, "searchPhrase": med.name}
