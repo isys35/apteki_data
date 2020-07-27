@@ -159,6 +159,8 @@ class AptekamosParser(Parser):
                 self.apteks.append(apteka)
             elif apteka_response.status_code == 404:
                 print(apteka_response.url, 'нерабочая ссылка')
+            elif apteka_response.status_code == 403:
+                print('БАН')
 
     def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
         """Получение аптек из запроса"""
@@ -186,18 +188,21 @@ class AptekamosParser(Parser):
         response = self.request.get(self.host + '/tovary')
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalogs()
         page_urls = [self.host + '/tovary']
-        print(max_page_in_catalog)
         page_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         splited_urls = self.split_list(page_urls, 100)
         self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
             for response in responses:
-                names_urls_ids_meds = Parse(response).parse_names_urls_ids_meds()
-                for name_url_id_med in names_urls_ids_meds:
-                    med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
-                    self.meds.append(med)
-                    print(f'Кол-во лекарств {len(self.meds)}')
+                if response.status_code == 200:
+                    names_urls_ids_meds = Parse(response).parse_names_urls_ids_meds()
+                    for name_url_id_med in names_urls_ids_meds:
+                        med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
+                        self.meds.append(med)
+                        print(f'Кол-во лекарств {len(self.meds)}')
+                else:
+                    print(response.status_code)
+                    sys.exit()
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
