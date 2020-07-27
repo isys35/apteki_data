@@ -161,6 +161,7 @@ class AptekamosParser(Parser):
                 print(apteka_response.url, 'нерабочая ссылка')
             elif apteka_response.status_code == 403:
                 print('БАН')
+                sys.exit()
 
     def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
         """Получение аптек из запроса"""
