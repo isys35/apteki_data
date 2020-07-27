@@ -152,11 +152,13 @@ class AptekamosParser(Parser):
         apteks_urls = self.load_initial_data()
         apteks_responses = self.get_responses(apteks_urls)
         for apteka_response in apteks_responses:
-            print(apteka_response.url)
-            apteka = self._get_aptek(apteks_urls[aptek_response_index], apteks_responses[aptek_response_index])
-            if not apteka:
-                continue
-            self.apteks.append(apteka)
+            if apteka_response.status_code == 200:
+                apteka = self._get_aptek(apteka_response.url, apteka_response.text)
+                if not apteka:
+                    continue
+                self.apteks.append(apteka)
+            elif apteka_response.status_code == 404:
+                print(apteka_response.url, 'нерабочая ссылка')
 
     def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
         """Получение аптек из запроса"""
