@@ -16,6 +16,7 @@ from apteka import Apteka, Med, Price, NAMES_APTEK
 from parsing_base import Parser, border_method_info
 from typing import Iterator
 from requests import Response
+import traceback
 
 
 @dataclass
@@ -213,7 +214,6 @@ class AptekamosParser(Parser):
         all_search_phrases = self._get_all_post_data()
         splited_search_phrases = self._split_generator(all_search_phrases, 100)
         for list_search_phrases in splited_search_phrases:
-            print('***')
             prices = self._get_prices_from_list_search_phrases(list_search_phrases)
             for price in prices:
                 db.add_price(price)
@@ -223,7 +223,6 @@ class AptekamosParser(Parser):
             INFO = f'[INFO {self.host}] apteka {self.apteks.index(list_search_phrases[-1].apteka)}/{len(self.apteks)}' \
                    f' med {self.meds.index(list_search_phrases[-1].med)}/{len(self.meds)}'
             print(INFO)
-            self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_prices_from_list_search_phrases(self, list_search_phrases: list) -> Iterator[Price]:
         json_prices = self._get_prices_from_json(list_search_phrases)
@@ -411,4 +410,9 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     parser = Parser().load_object('parsers/aptekamos')
-    parser.async_update_prices()
+    try:
+        parser.async_update_prices()
+    except Exception as ex:
+        print(traceback.format_exc())
+        parser.save_object(parser, f'parsers/{parser.name_parser}')
+
