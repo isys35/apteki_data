@@ -201,9 +201,7 @@ class AptekamosParser(Parser):
                         self.meds.append(med)
                         print(f'Кол-во лекарств {len(self.meds)}')
                 else:
-                    print(response.status_code)
-                    self.save_html(response.text, '403.html')
-                    sys.exit()
+                    continue
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
