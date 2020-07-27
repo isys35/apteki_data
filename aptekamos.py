@@ -1,3 +1,4 @@
+import grequests
 import json
 import os
 import time
@@ -17,6 +18,10 @@ from parsing_base import Parser, border_method_info
 from typing import Iterator
 from requests import Response
 import traceback
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0'
+}
 
 
 @dataclass
@@ -185,8 +190,6 @@ class AptekamosParser(Parser):
         self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
-            print(responses)
-            sys.exit()
             for response in responses:
                 names_urls_ids_meds = Parse(response).parse_names_urls_ids_meds()
                 for name_url_id_med in names_urls_ids_meds:
@@ -399,11 +402,8 @@ class AptekamosParser(Parser):
         return urls
 
     def get_responses(self, urls: list) -> list:
-        try:
-            responses = self.requests.get(urls)
-        except (ClientConnectorError, TimeoutError):
-            responses = [self.request.get(url) for url in urls]
-        return responses
+        responses = (grequests.get(u, headers=HEADERS) for u in urls)
+        return grequests.map(responses)
 
     def post_responses(self, post_urls: list, post_data: list) -> list:
         try:
