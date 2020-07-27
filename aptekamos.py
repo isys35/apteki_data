@@ -268,11 +268,10 @@ class AptekamosParser(Parser):
                 list_search_phrases_for_get_request.append(list_search_phrases[json_responses.index(json_response)])
         get_urls = self._get_urls_for_get_requests(list_search_phrases_for_get_request)
         html_responses = self.get_responses(get_urls)
-        print(html_responses)
         all_html_prices = []
-        for index_search_phrase in range(len(list_search_phrases_for_get_request)):
-            html_prices = self._get_prices_from_response(html_responses[index_search_phrase],
-                                                         list_search_phrases_for_get_request[index_search_phrase])
+        for html_response in html_responses:
+            html_prices = self._get_prices_from_response(html_response.text,
+                                                         list_search_phrases_for_get_request[html_responses.index(html_response)])
             all_html_prices.append(html_prices)
         return all_html_prices
 
