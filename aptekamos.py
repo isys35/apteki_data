@@ -176,7 +176,7 @@ class AptekamosParser(Parser):
         if self.meds:
             return
         response = self.requests.get([self.host + '/tovary'])
-        max_page_in_catalog = Parse(response).parse_max_page_in_catalogs()
+        max_page_in_catalog = Parse(response[0]).parse_max_page_in_catalogs()
         page_urls = [self.host + '/tovary']
         page_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         splited_urls = self.split_list(page_urls, 100)
