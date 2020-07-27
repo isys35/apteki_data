@@ -151,8 +151,8 @@ class AptekamosParser(Parser):
             return
         apteks_urls = self.load_initial_data()
         apteks_responses = self.get_responses(apteks_urls)
-        print(apteks_responses)
-        for aptek_response_index in range(len(apteks_responses)):
+        for apteka_response in apteks_responses:
+            print(apteka_response.url)
             apteka = self._get_aptek(apteks_urls[aptek_response_index], apteks_responses[aptek_response_index])
             if not apteka:
                 continue
