@@ -147,9 +147,9 @@ class AptekamosParser(Parser):
 
     @border_method_info(f'Обновление аптек...', 'Обновление аптек завершено.')
     def update_apteks(self) -> None:
-        if self.apteks:
-            return
-        apteks_urls = self.load_initial_data()
+        init_apteks_urls = self.load_initial_data()
+        loaded_apteks_urls = [aptek.url for aptek in self.apteks]
+        apteks_urls = [url for url in init_apteks_urls if url not in loaded_apteks_urls]
         apteks_responses = self.get_responses(apteks_urls)
         for apteka_response in apteks_responses:
             if apteka_response.status_code == 200:
@@ -161,7 +161,7 @@ class AptekamosParser(Parser):
                 print(apteka_response.url, 'нерабочая ссылка')
             elif apteka_response.status_code == 403:
                 print('БАН')
-                sys.exit()
+        self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
         """Получение аптек из запроса"""
@@ -195,14 +195,13 @@ class AptekamosParser(Parser):
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
             for response in responses:
+                print(response.url)
                 if response.status_code == 200:
                     names_urls_ids_meds = Parse(response.text).parse_names_urls_ids_meds()
                     for name_url_id_med in names_urls_ids_meds:
                         med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
                         self.meds.append(med)
                         print(f'Кол-во лекарств {len(self.meds)}')
-                else:
-                    continue
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
@@ -419,10 +418,13 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     NAME_PARSER = 'aptekamos'
+    a = Parser().load_object('parsers/aptekamos2')
     if NAME_PARSER in os.listdir('parsers'):
         parser = Parser().load_object(f'parsers/{NAME_PARSER}')
+        parser.meds = a.meds
     else:
         parser = AptekamosParser(NAME_PARSER, 'init_data/aptekamos_init_data.txt')
+        parser.meds = a.meds
     try:
         parser.async_update_prices()
     except Exception as ex:
