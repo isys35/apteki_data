@@ -7,7 +7,6 @@ import pickle
 import httplib2
 import time
 
-
 def border_method_info(pre_info, post_info):
     def decorator(func):
         def wrapper(*args, **kwargs):
