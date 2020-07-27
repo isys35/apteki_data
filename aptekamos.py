@@ -250,6 +250,7 @@ class AptekamosParser(Parser):
         post_urls = [self.POST_URL for _ in range(len(list_search_phrases))]
         post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
         json_responses = self.post_responses(post_urls, post_data)
+        print(json_responses)
         all_json_prices = []
         for index_search_phrase in range(len(list_search_phrases)):
             if self._is_json_response(json_responses[index_search_phrase]):
@@ -412,11 +413,8 @@ class AptekamosParser(Parser):
         return grequests.map(responses)
 
     def post_responses(self, post_urls: list, post_data: list) -> list:
-        try:
-            responses = self.requests.post(post_urls, json_data=post_data)
-        except (ClientConnectorError, TimeoutError):
-            responses = [self.request.post(post_urls[i], json_data=post_data[i]) for i in range(len(post_urls))]
-        return responses
+        responses = (grequests.post(post_urls[i], json=post_data[i], headers=HEADERS) for i in range(len(post_urls)))
+        return grequests.map(responses)
 
 
 if __name__ == '__main__':
