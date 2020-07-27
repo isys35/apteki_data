@@ -418,13 +418,11 @@ class AptekamosParser(Parser):
 
 if __name__ == '__main__':
     NAME_PARSER = 'aptekamos'
-    a = Parser().load_object('parsers/aptekamos2')
     if NAME_PARSER in os.listdir('parsers'):
         parser = Parser().load_object(f'parsers/{NAME_PARSER}')
-        parser.meds = a.meds
+        print(len(parser.meds))
     else:
         parser = AptekamosParser(NAME_PARSER, 'init_data/aptekamos_init_data.txt')
-        parser.meds = a.meds
     try:
         parser.async_update_prices()
     except Exception as ex:
