@@ -193,10 +193,9 @@ class AptekamosParser(Parser):
         self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
-            print(responses)
             for response in responses:
                 if response.status_code == 200:
-                    names_urls_ids_meds = Parse(response).parse_names_urls_ids_meds()
+                    names_urls_ids_meds = Parse(response.text).parse_names_urls_ids_meds()
                     for name_url_id_med in names_urls_ids_meds:
                         med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
                         self.meds.append(med)
