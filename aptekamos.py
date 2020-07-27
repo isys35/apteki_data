@@ -250,12 +250,11 @@ class AptekamosParser(Parser):
         post_urls = [self.POST_URL for _ in range(len(list_search_phrases))]
         post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
         json_responses = self.post_responses(post_urls, post_data)
-        print(json_responses)
         all_json_prices = []
-        for index_search_phrase in range(len(list_search_phrases)):
-            if self._is_json_response(json_responses[index_search_phrase]):
-                json_prices = self._get_prices_from_response(json_responses[index_search_phrase],
-                                                             list_search_phrases[index_search_phrase])
+        for json_response in json_responses:
+            if json_response.status_code == 200:
+                json_prices = self._get_prices_from_response(json_response.text,
+                                                             list_search_phrases[json_responses.index(json_response)])
                 all_json_prices.append(json_prices)
         return all_json_prices
 
@@ -264,11 +263,12 @@ class AptekamosParser(Parser):
         post_data = [search_phrase.post_data for search_phrase in list_search_phrases]
         json_responses = self.post_responses(post_urls, post_data)
         list_search_phrases_for_get_request = []
-        for index_search_phrase in range(len(list_search_phrases)):
-            if not self._is_json_response(json_responses[index_search_phrase]):
-                list_search_phrases_for_get_request.append(list_search_phrases[index_search_phrase])
+        for json_response in json_responses:
+            if json_response.status_code != 200:
+                list_search_phrases_for_get_request.append(list_search_phrases[json_responses.index(json_response)])
         get_urls = self._get_urls_for_get_requests(list_search_phrases_for_get_request)
         html_responses = self.get_responses(get_urls)
+        print(html_responses)
         all_html_prices = []
         for index_search_phrase in range(len(list_search_phrases_for_get_request)):
             html_prices = self._get_prices_from_response(html_responses[index_search_phrase],
