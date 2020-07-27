@@ -188,6 +188,7 @@ class AptekamosParser(Parser):
                 for name_url_id_med in names_urls_ids_meds:
                     med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
                     self.meds.append(med)
+                    print(f'Кол-во лекарств {len(self.meds)}')
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
