@@ -6,6 +6,7 @@ from urllib.parse import unquote, quote
 import pickle
 import httplib2
 import time
+import grequests
 
 def border_method_info(pre_info, post_info):
     def decorator(func):
@@ -94,10 +95,8 @@ class Requests(Request):
         super().__init__()
 
     def get(self, urls, headers=None):
-        if headers is None:
-            headers = [self.headers for _ in range(len(urls))]
-        data = asyncio.run(req_get(urls, headers))
-        return data
+        responses = (grequests.get(u, headers=self.headers) for u in urls)
+        return grequests.map(responses)
 
     def post(self, urls, json_data, headers=None):
         if headers is None:

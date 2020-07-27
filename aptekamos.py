@@ -178,11 +178,14 @@ class AptekamosParser(Parser):
         response = self.request.get(self.host + '/tovary')
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalogs()
         page_urls = [self.host + '/tovary']
+        print(max_page_in_catalog)
         page_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         splited_urls = self.split_list(page_urls, 100)
         self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
+            print(responses)
+            sys.exit()
             for response in responses:
                 names_urls_ids_meds = Parse(response).parse_names_urls_ids_meds()
                 for name_url_id_med in names_urls_ids_meds:
@@ -398,7 +401,7 @@ class AptekamosParser(Parser):
         try:
             responses = self.requests.get(urls)
         except (ClientConnectorError, TimeoutError):
-            responses = [self.request.get(url).text for url in urls]
+            responses = [self.request.get(url) for url in urls]
         return responses
 
     def post_responses(self, post_urls: list, post_data: list) -> list:
