@@ -7,6 +7,8 @@ import pickle
 import httplib2
 import time
 import grequests
+from gevent import monkey as curious_george
+curious_george.patch_all(thread=False, select=False)
 
 def border_method_info(pre_info, post_info):
     def decorator(func):
@@ -95,7 +97,8 @@ class Requests(Request):
         super().__init__()
 
     def get(self, urls, headers=None):
-        responses = (grequests.get(u, headers=self.headers) for u in urls)
+        print(urls)
+        responses = (grequests.get(u, headers=headers) for u in urls)
         return grequests.map(responses)
 
     def post(self, urls, json_data, headers=None):
