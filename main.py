@@ -64,8 +64,8 @@ def create_full_catalog_csv():
 
 def create_catalog_csv(parser):
     data = set(db.get_data_meds(parser.host))
-    csv_writer.create_csv_file(f'catalogs/{parser.name}.csv')
-    csv_writer.add_data_in_catalog(f'catalogs/{parser.name}.csv', data)
+    csv_writer.create_csv_file(f'catalogs/{parser.name_parser}.csv')
+    csv_writer.add_data_in_catalog(f'catalogs/{parser.name_parser}.csv', data)
 
 
 def create_apteks_xml():
@@ -75,14 +75,14 @@ def create_apteks_xml():
 
 
 def create_prices_xls(parser):
-    print(f'[INFO] Создание xml для {parser.name}')
+    print(f'[INFO] Создание xml для {parser.name_parser}')
     try:
-        os.mkdir(f"prices/{parser.name}")
+        os.mkdir(f"prices/{parser.name_parser}")
     except FileExistsError:
         pass
     data = db.get_prices_meds(parser.host)
     for aptek in data:
-        file_name = f"prices/{parser.name}/{parser.name}_{aptek['host_id']}.xml"
+        file_name = f"prices/{parser.name_parser}/{parser.name_parser}_{aptek['host_id']}.xml"
         id = str(aptek['host_id'])
         name = f"{aptek['name']} {aptek['address']}"
         date = time.localtime(aptek['upd_time'])
@@ -93,5 +93,7 @@ def create_prices_xls(parser):
 
 if __name__ == '__main__':
     # main()
-    parser = AptekamosParser()
-    download_images_and_descriptions(parser)
+    parser = AptekamosParser('aptekamos', 'init_data/aptekamos_init_data.txt')
+    create_prices_xls(parser)
+    create_full_catalog_csv()
+    create_catalog_csv(parser)
