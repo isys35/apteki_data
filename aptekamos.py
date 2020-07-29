@@ -236,6 +236,7 @@ class AptekamosParser(Parser):
                 db.aptek_update_updtime(search_phrase.apteka)
             INFO = f'[INFO {self.host}] apteka {self.apteks.index(list_search_phrases[-1].apteka)}/{len(self.apteks)}' \
                    f' med {self.meds.index(list_search_phrases[-1].med)}/{len(self.meds)}'
+            print(INFO)
             self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_prices_from_list_search_phrases(self, list_search_phrases: list) -> Iterator[Price]:
