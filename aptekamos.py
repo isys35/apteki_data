@@ -198,7 +198,7 @@ class AptekamosParser(Parser):
     def update_meds(self) -> None:
         self.meds = []
         try:
-            response = requests.get(self.host + '/tovary', proxies=self.proxies)
+            response = requests.get(self.host + '/tovary', headers=HEADERS, proxies=self.proxies)
         except (ProxyError, ConnectTimeout):
             self.proxies = self.generator_proxies.get_proxies()
             self.update_meds()
