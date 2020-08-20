@@ -19,6 +19,7 @@ from typing import Iterator
 from requests import Response
 import traceback
 import proxy
+from requests.exceptions import ProxyError,ConnectTimeout
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0'
@@ -195,7 +196,12 @@ class AptekamosParser(Parser):
     @border_method_info('Обновление лекарств...', 'Обновление лекарств завершено.')
     def update_meds(self) -> None:
         self.meds = []
-        response = requests.get(self.host + '/tovary', proxies=self.proxies)
+        try:
+            response = requests.get(self.host + '/tovary', proxies=self.proxies)
+        except (ProxyError, ConnectTimeout):
+            self.proxies = proxy.get_proxies()
+            self.update_meds()
+            return
         if response.status_code == 403:
             self.proxies = proxy.get_proxies()
             self.update_meds()
