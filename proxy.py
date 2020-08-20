@@ -17,6 +17,8 @@ class Proxy:
             try:
                 proxies = {'https': self.proxies_list.pop()}
                 resp = requests.get(self.check_url, proxies=proxies, timeout=3)
+                if resp.status_code == 403:
+                    continue
                 print(f'{resp.status_code} {proxies} работает')
                 return proxies
             except (ProxyError, ConnectTimeout, SSLError, ConnectionError):
