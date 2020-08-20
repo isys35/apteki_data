@@ -164,7 +164,8 @@ class AptekamosParser(Parser):
                     try:
                         apteka_response = requests.get(apteks_urls[apteka_response_index],
                                                         headers=HEADERS,
-                                                        proxies=self.proxies)
+                                                        proxies=self.proxies,
+                                                        timeout=3)
                         break
                     except (ProxyError, ConnectTimeout, SSLError):
                         print('ProxyError')
