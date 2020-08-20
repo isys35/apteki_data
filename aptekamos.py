@@ -160,10 +160,14 @@ class AptekamosParser(Parser):
         for apteka_response_index in range(len(apteks_responses)):
             apteka_response = apteks_responses[apteka_response_index]
             if apteka_response is None:
-                self.proxies = self.generator_proxies.get_proxies()
-                apteka_response = requests.get(apteks_urls[apteka_response_index],
-                                               headers=HEADERS,
-                                               proxies=self.proxies)
+                while True:
+                    try:
+                        apteka_response = requests.get(apteks_urls[apteka_response_index],
+                                                        headers=HEADERS,
+                                                        proxies=self.proxies)
+                        break
+                    except ProxyError:
+                        print('ProxyError')
             if apteka_response.status_code == 200:
                 apteka = self._get_aptek(apteka_response.url, apteka_response.text)
                 if not apteka:
