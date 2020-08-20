@@ -19,7 +19,7 @@ from typing import Iterator
 from requests import Response
 import traceback
 from proxy import Proxy
-from requests.exceptions import ProxyError,ConnectTimeout
+from requests.exceptions import ProxyError,ConnectTimeout,SSLError
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0'
@@ -166,7 +166,7 @@ class AptekamosParser(Parser):
                                                         headers=HEADERS,
                                                         proxies=self.proxies)
                         break
-                    except ProxyError:
+                    except (ProxyError, ConnectTimeout, SSLError):
                         print('ProxyError')
                         self.proxies = self.generator_proxies.get_proxies()
             if apteka_response.status_code == 200:
