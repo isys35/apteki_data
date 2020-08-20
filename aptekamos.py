@@ -168,6 +168,7 @@ class AptekamosParser(Parser):
                         break
                     except ProxyError:
                         print('ProxyError')
+                        self.proxies = self.generator_proxies.get_proxies()
             if apteka_response.status_code == 200:
                 apteka = self._get_aptek(apteka_response.url, apteka_response.text)
                 if not apteka:
