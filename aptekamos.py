@@ -156,6 +156,10 @@ class AptekamosParser(Parser):
         apteks_responses = self.get_responses(apteks_urls)
         print(apteks_responses)
         for apteka_response in apteks_responses:
+            if apteka_response is None:
+                self.proxies = proxy.get_proxies()
+                self.update_apteks()
+                return
             if apteka_response.status_code == 200:
                 apteka = self._get_aptek(apteka_response.url, apteka_response.text)
                 if not apteka:
@@ -166,6 +170,7 @@ class AptekamosParser(Parser):
             elif apteka_response.status_code == 403:
                 self.proxies = proxy.get_proxies()
                 self.update_apteks()
+                return
         self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
