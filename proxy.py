@@ -4,7 +4,8 @@ from requests.exceptions import ProxyError, ConnectTimeout, SSLError, Connection
 
 
 class Proxy:
-    def __init__(self):
+    def __init__(self, check_url='https://www.google.com/'):
+        self.check_url = check_url
         self.proxies_list = []
 
     def get_proxies(self) -> dict:
@@ -15,7 +16,7 @@ class Proxy:
         while True:
             try:
                 proxies = {'https': self.proxies_list.pop()}
-                resp = requests.get('https://www.google.com/', proxies=proxies, timeout=3)
+                resp = requests.get(self.check_url, proxies=proxies, timeout=3)
                 print(f'{resp.status_code} {proxies} работает')
                 return proxies
             except (ProxyError, ConnectTimeout, SSLError, ConnectionError):
