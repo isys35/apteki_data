@@ -248,8 +248,10 @@ class AptekamosParser(Parser):
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def async_update_prices(self):
-        self.update_apteks()
-        self.update_meds()
+        if not self.apteks:
+            self.update_apteks()
+        if not self.meds:
+            self.update_meds()
         all_search_phrases = self._get_all_post_data()
         splited_search_phrases = self._split_generator(all_search_phrases, 100)
         for list_search_phrases in splited_search_phrases:
