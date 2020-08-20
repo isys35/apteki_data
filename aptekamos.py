@@ -18,6 +18,7 @@ from parsing_base import Parser, border_method_info
 from typing import Iterator
 from requests import Response
 import traceback
+import proxy
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0'
@@ -135,6 +136,7 @@ class AptekamosParser(Parser):
         self.name_parser = name_parser
         self.host = 'https://aptekamos.ru'
         self.data_catalog_name = 'aptekamos_data'
+        self.proxies = None
         self.apteks = []
         self.meds = []
         self.parsed_post_data = []
@@ -147,10 +149,12 @@ class AptekamosParser(Parser):
 
     @border_method_info(f'Обновление аптек...', 'Обновление аптек завершено.')
     def update_apteks(self) -> None:
+        self.apteks = []
         init_apteks_urls = self.load_initial_data()
         loaded_apteks_urls = [aptek.url for aptek in self.apteks]
         apteks_urls = [url for url in init_apteks_urls if url not in loaded_apteks_urls]
         apteks_responses = self.get_responses(apteks_urls)
+        print(apteks_responses)
         for apteka_response in apteks_responses:
             if apteka_response.status_code == 200:
                 apteka = self._get_aptek(apteka_response.url, apteka_response.text)
@@ -160,7 +164,8 @@ class AptekamosParser(Parser):
             elif apteka_response.status_code == 404:
                 print(apteka_response.url, 'нерабочая ссылка')
             elif apteka_response.status_code == 403:
-                print('БАН')
+                self.proxies = proxy.get_proxies()
+                self.update_apteks()
         self.save_object(self, f'parsers/{self.name_parser}')
 
     def _get_aptek(self, aptek_url: str, apteks_response: str) -> Union[Apteka, None]:
@@ -184,29 +189,37 @@ class AptekamosParser(Parser):
 
     @border_method_info('Обновление лекарств...', 'Обновление лекарств завершено.')
     def update_meds(self) -> None:
-        if self.meds:
+        self.meds = []
+        response = requests.get(self.host + '/tovary', proxies=self.proxies)
+        if response.status_code == 403:
+            self.proxies = proxy.get_proxies()
+            self.update_meds()
             return
-        response = self.request.get(self.host + '/tovary')
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalogs()
         page_urls = [self.host + '/tovary']
         page_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         splited_urls = self.split_list(page_urls, 100)
-        self.meds = []
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
             for response in responses:
-                print(response.url)
                 if response.status_code == 200:
                     names_urls_ids_meds = Parse(response.text).parse_names_urls_ids_meds()
                     for name_url_id_med in names_urls_ids_meds:
                         med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
                         self.meds.append(med)
                         print(f'Кол-во лекарств {len(self.meds)}')
+                else:
+                    print(response)
+                    sys.exit()
+
+
 
     @border_method_info('Обновление цен...', 'Обновление цен завершено.')
     def update_prices(self):
-        self.update_apteks()
-        self.update_meds()
+        if not self.apteks:
+            self.update_apteks()
+        if not self.meds:
+            self.update_meds()
         all_search_phrases = self._get_all_post_data()
         for search_phrase in all_search_phrases:
             INFO = f'[INFO {self.host}] apteka {self.apteks.index(search_phrase.apteka)}/{len(self.apteks)}' \
@@ -409,11 +422,16 @@ class AptekamosParser(Parser):
         return urls
 
     def get_responses(self, urls: list) -> list:
-        responses = (grequests.get(u, headers=HEADERS) for u in urls)
+        responses = (grequests.get(u,
+                                   headers=HEADERS,
+                                   proxies=self.proxies) for u in urls)
         return grequests.map(responses)
 
     def post_responses(self, post_urls: list, post_data: list) -> list:
-        responses = (grequests.post(post_urls[i], json=post_data[i], headers=HEADERS) for i in range(len(post_urls)))
+        responses = (grequests.post(post_urls[i],
+                                    json=post_data[i],
+                                    headers=HEADERS,
+                                    proxies=self.proxies) for i in range(len(post_urls)))
         return grequests.map(responses)
 
 
