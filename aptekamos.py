@@ -18,7 +18,7 @@ from parsing_base import Parser, border_method_info
 from typing import Iterator
 from requests import Response
 import traceback
-import proxy
+from proxy import Proxy
 from requests.exceptions import ProxyError,ConnectTimeout
 
 HEADERS = {
@@ -138,6 +138,7 @@ class AptekamosParser(Parser):
         self.host = 'https://aptekamos.ru'
         self.data_catalog_name = 'aptekamos_data'
         self.proxies = None
+        self.generator_proxies = Proxy()
         self.apteks = []
         self.meds = []
         self.parsed_post_data = []
@@ -158,7 +159,7 @@ class AptekamosParser(Parser):
         print(apteks_responses)
         for apteka_response in apteks_responses:
             if apteka_response is None:
-                self.proxies = proxy.get_proxies()
+                self.proxies = self.generator_proxies.get_proxies()
                 self.update_apteks()
                 return
             if apteka_response.status_code == 200:
@@ -169,7 +170,7 @@ class AptekamosParser(Parser):
             elif apteka_response.status_code == 404:
                 print(apteka_response.url, 'нерабочая ссылка')
             elif apteka_response.status_code == 403:
-                self.proxies = proxy.get_proxies()
+                self.proxies = self.generator_proxies.get_proxies()
                 self.update_apteks()
                 return
         self.save_object(self, f'parsers/{self.name_parser}')
@@ -199,11 +200,11 @@ class AptekamosParser(Parser):
         try:
             response = requests.get(self.host + '/tovary', proxies=self.proxies)
         except (ProxyError, ConnectTimeout):
-            self.proxies = proxy.get_proxies()
+            self.proxies = self.generator_proxies.get_proxies()
             self.update_meds()
             return
         if response.status_code == 403:
-            self.proxies = proxy.get_proxies()
+            self.proxies = self.generator_proxies.get_proxies()
             self.update_meds()
             return
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalogs()
