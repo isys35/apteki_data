@@ -214,15 +214,22 @@ class AptekamosParser(Parser):
         for url_list in splited_urls:
             responses = self.get_responses(url_list)
             for response in responses:
-                if response.status_code == 200:
-                    names_urls_ids_meds = Parse(response.text).parse_names_urls_ids_meds()
-                    for name_url_id_med in names_urls_ids_meds:
-                        med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
-                        self.meds.append(med)
-                        print(f'Кол-во лекарств {len(self.meds)}')
-                else:
-                    print(response)
-                    sys.exit()
+                meds = self._get_meds_from_response(response)
+                self.meds.extend(meds)
+                print(f'Кол-во лекарств {len(self.meds)}')
+
+    def _get_meds_from_response(self, response: Response) -> list:
+        meds = []
+        if response.status_code == 200:
+            names_urls_ids_meds = Parse(response.text).parse_names_urls_ids_meds()
+            for name_url_id_med in names_urls_ids_meds:
+                med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
+                meds.append(med)
+            return meds
+        if response.status_code == 403:
+            self.proxies = self.generator_proxies.get_proxies()
+            response = requests.get(response.url, headers=HEADERS, proxies=self.proxies)
+            return self._get_meds_from_response(response)
 
 
 
