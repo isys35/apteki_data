@@ -160,6 +160,7 @@ class AptekamosParser(Parser):
         for apteka_response_index in range(len(apteks_responses)):
             apteka_response = apteks_responses[apteka_response_index]
             if apteka_response is None:
+                self.proxies = self.generator_proxies.get_proxies()
                 apteka_response = requests.get(apteks_urls[apteka_response_index],
                                                headers=HEADERS,
                                                proxies=self.proxies)
