@@ -1,6 +1,6 @@
 import requests
 import random
-from requests.exceptions import ProxyError, ConnectTimeout, SSLError
+from requests.exceptions import ProxyError, ConnectTimeout, SSLError, ConnectionError
 
 
 class Proxy:
@@ -18,7 +18,7 @@ class Proxy:
                 resp = requests.get('https://www.google.com/', proxies=proxies, timeout=3)
                 print(f'{resp.status_code} {proxies} работает')
                 return proxies
-            except (ProxyError, ConnectTimeout, SSLError):
+            except (ProxyError, ConnectTimeout, SSLError, ConnectionError):
                 print(f'{proxies} ProxyError')
 
 
