@@ -168,7 +168,7 @@ class AptekamosParser(Parser):
         self.host = 'https://aptekamos.ru'
         self.data_catalog_name = 'aptekamos_data'
         self.proxies = None
-        self.generator_proxies = Proxy(self.host)
+        self.generator_proxies = Proxy(self.host + '/tovary')
         self.apteks = []
         self.meds = []
         self.parsed_post_data = []
