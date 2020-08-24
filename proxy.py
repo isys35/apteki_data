@@ -1,6 +1,6 @@
 import requests
 import random
-from requests.exceptions import ProxyError, ConnectTimeout, SSLError, ConnectionError
+from requests.exceptions import ProxyError, ConnectTimeout, SSLError, ConnectionError,ReadTimeout
 
 
 class Proxy:
@@ -21,7 +21,7 @@ class Proxy:
                     continue
                 print(f'{resp.status_code} {proxies} работает')
                 return proxies
-            except (ProxyError, ConnectTimeout, SSLError, ConnectionError):
+            except (ProxyError, ConnectTimeout, SSLError, ConnectionError, ReadTimeout):
                 print(f'{proxies} ProxyError')
 
 
