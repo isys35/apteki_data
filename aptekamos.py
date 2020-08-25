@@ -22,6 +22,10 @@ from proxy import Proxy
 from requests.exceptions import ProxyError, ConnectTimeout, SSLError
 import re
 import math
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.options import Options
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0'
@@ -501,8 +505,7 @@ class AptekamosParserRemake(AptekamosParser):
         self.parsed_pages = []
 
     def update_data(self):
-        if not self.apteks:
-            self.update_apteks()
+        self.update_apteks()
         response = self._get_response(self.host + '/tovary')
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalogs()
         pages_urls = [self.host + '/tovary']
@@ -515,7 +518,6 @@ class AptekamosParserRemake(AptekamosParser):
             meds = self._get_meds_from_response(response_page_catalog)
             for med in meds:
                 response_med = self._get_response(med.url)
-                time.sleep(5)
                 if self._is_different_packaging(response_med):
                     packs = self._get_packs(med.host_id)
                     for pack in packs:
@@ -570,7 +572,6 @@ class AptekamosParserRemake(AptekamosParser):
                 else:
                     page_url = response.url + f'?llat=0.0&llng=0.0&on=&so=0&p=0&f=0&c=0&page={page}&min=0&max=0&deliv=0&rsrv=0&sale=0&st=0&r=&me=0&duty=0&mn=0'
                 print(page_url)
-                time.sleep(5)
                 response_page = self._get_response(page_url)
                 if not response_page:
                     continue
@@ -610,19 +611,105 @@ class AptekamosParserRemake(AptekamosParser):
         return meds
 
     def _get_response(self, url: str) -> Response:
+        time.sleep(10)
         response = requests.get(url, headers=HEADERS)
         if response.status_code == 200:
             return response
         elif response.status_code == 403:
+            print(response)
             return
 
+
+class AptekamosParserSelenium(AptekamosParserRemake):
+    def __init__(self, name_parser: str, file_init_data: str) -> None:
+        super().__init__(name_parser, file_init_data)
+        self.progress = str()
+        self.parsed_pages = []
+        self.options = Options()
+        self.options.headless = False
+        self.driver = webdriver.Firefox(options=self.options)
+
+    def update_data(self):
+        self.update_apteks()
+        self.driver.get(self.host + '/tovary')
+        max_page_in_catalog = Parse(self.driver.page_source).parse_max_page_in_catalogs()
+        pages_urls = [self.host + '/tovary']
+        pages_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
+        for url_catalog_page in pages_urls:
+            if url_catalog_page in self.parsed_pages:
+                continue
+            self.progress = f'{pages_urls.index(url_catalog_page)} / {len(pages_urls)}'
+            self.driver.get(url_catalog_page)
+            meds = self._get_meds_from_response(self.driver.page_source)
+            for med in meds:
+                self.driver.get(med.url)
+                if self._is_different_packaging(self.driver.page_source):
+                    packs = self._get_packs(med.host_id)
+                    for pack in packs:
+                        url_filter_pack = med.url + f'?llat=0.0&llng=0.0&on=&so=0&p={pack}&f=&c=&page=1&min=0&max=0&deliv=0&rsrv=0&sale=0&st=0&r=&me=0&duty=0&mn=0'
+                        response_med_pack = self._get_response(url_filter_pack)
+                        self._update_prices(response_med_pack, med)
+                else:
+                    self._update_prices(response_med, med)
+            self.parsed_pages.append(url_catalog_page)
+
+    def _get_packs(self, med_host_id: int) -> list:
+        filter_url = f'https://aptekamos.ru/Services/WProducts/getMedFilters?medId={med_host_id}&regionId=1&compressOutput=1&_={time.time() * 1000}'
+        response_filter = self._get_response(filter_url)
+        response_filter_json = response_filter.json()
+        packs = [pack['pack'] for pack in response_filter_json['packs']]
+        return packs
+
+    @staticmethod
+    def _is_different_packaging(response) -> bool:
+        soup = BeautifulSoup(response, 'lxml')
+        block_packaging = soup.select_one('.pack-num.ret-flt-function.function')
+        if block_packaging:
+            return True
+
+    def _get_meds_from_response(self, response):
+        meds = []
+        names_urls_ids_meds = Parse(response).parse_names_urls_ids_meds()
+        for name_url_id_med in names_urls_ids_meds:
+            med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
+            meds.append(med)
+        return meds
+
+    def update_apteks(self):
+        self.apteks = {}
+        init_apteks_urls = self.load_initial_data()
+        for aptek_url in init_apteks_urls:
+            self.driver.get(aptek_url)
+            self.apteks[aptek_url] = self._get_aptek(self.driver.page_source)
+
+    def _get_aptek(self, response):
+        """Получение аптек из запроса"""
+        header_aptek = Parse(response).parse_header_aptek()
+        if not header_aptek:
+            return None
+        # исправить Parse(response)
+        aptek_name = str()
+        for name in NAMES_APTEK:
+            if name in header_aptek:
+                aptek_name = name
+                break
+        aptek_address = Parse(response).parse_adress_aptek()
+        aptek_url = self.driver.current_url
+        aptek_id = aptek_url.replace('/ob-apteke', '').split('-')[-1]
+        apteka = Apteka(name=aptek_name,
+                        url=aptek_url,
+                        address=aptek_address,
+                        host=self.host,
+                        host_id=int(aptek_id))
+        print(apteka)
+        return apteka
 
 if __name__ == '__main__':
     NAME_PARSER = 'aptekamos'
     if NAME_PARSER in os.listdir('parsers'):
         parser = Parser().load_object(f'parsers/{NAME_PARSER}')
     else:
-        parser = AptekamosParserRemake(NAME_PARSER, 'init_data/aptekamos_init_data.txt')
+        parser = AptekamosParserSelenium(NAME_PARSER, 'init_data/aptekamos_init_data.txt')
     try:
         parser.update_data()
     except Exception as ex:
