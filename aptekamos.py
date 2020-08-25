@@ -153,6 +153,8 @@ class Parse:
             price = tds[6].select_one('.ret-drug-price').text.replace('\n', '').strip().replace(u'\xa0', u'')
             if price == 'показать цену':
                 price = tds[6].select_one('.ret-drug-price')['data-err-price'].replace(u'\xa0', u'').replace('руб.', '').strip()
+            if '...' in price:
+                price = price.split('...')[0]
             price = float(price)
             aptek_urls_and_prices.append([url_aptek, price])
         return aptek_urls_and_prices
@@ -168,7 +170,7 @@ class AptekamosParser(Parser):
         self.host = 'https://aptekamos.ru'
         self.data_catalog_name = 'aptekamos_data'
         self.proxies = None
-        self.generator_proxies = Proxy(self.host + '/tovary')
+        self.generator_proxies = Proxy()
         self.apteks = []
         self.meds = []
         self.parsed_post_data = []
@@ -496,19 +498,24 @@ class AptekamosParserRemake(AptekamosParser):
     def __init__(self, name_parser: str, file_init_data: str) -> None:
         super().__init__(name_parser, file_init_data)
         self.progress = str()
+        self.parsed_pages = []
 
     def update_data(self):
-        self.update_apteks()
+        if not self.apteks:
+            self.update_apteks()
         response = self._get_response(self.host + '/tovary')
         max_page_in_catalog = Parse(response.text).parse_max_page_in_catalogs()
         pages_urls = [self.host + '/tovary']
         pages_urls.extend([f'https://aptekamos.ru/tovary?page={i}' for i in range(2, max_page_in_catalog + 1)])
         for url_catalog_page in pages_urls:
+            if url_catalog_page in self.parsed_pages:
+                continue
             self.progress = f'{pages_urls.index(url_catalog_page)} / {len(pages_urls)}'
             response_page_catalog = self._get_response(url_catalog_page)
             meds = self._get_meds_from_response(response_page_catalog)
             for med in meds:
                 response_med = self._get_response(med.url)
+                time.sleep(5)
                 if self._is_different_packaging(response_med):
                     packs = self._get_packs(med.host_id)
                     for pack in packs:
@@ -517,6 +524,7 @@ class AptekamosParserRemake(AptekamosParser):
                         self._update_prices(response_med_pack, med)
                 else:
                     self._update_prices(response_med, med)
+            self.parsed_pages.append(url_catalog_page)
 
     def update_apteks(self):
         self.apteks = {}
@@ -540,11 +548,13 @@ class AptekamosParserRemake(AptekamosParser):
         aptek_address = Parse(response.text).parse_adress_aptek()
         aptek_url = response.url
         aptek_id = aptek_url.replace('/ob-apteke', '').split('-')[-1]
-        return Apteka(name=aptek_name,
-                      url=aptek_url,
-                      address=aptek_address,
-                      host=self.host,
-                      host_id=int(aptek_id))
+        apteka = Apteka(name=aptek_name,
+                        url=aptek_url,
+                        address=aptek_address,
+                        host=self.host,
+                        host_id=int(aptek_id))
+        print(apteka)
+        return apteka
 
     def _update_prices(self, response: Response, med: Med):
         print(response.url)
@@ -555,11 +565,15 @@ class AptekamosParserRemake(AptekamosParser):
         parsers = [parser]
         if max_page_aptek > 1:
             for page in range(2, max_page_aptek + 1):
-                if re.search('&page=', response.url).group(0):
+                if re.search('&page=', response.url):
                     page_url = re.sub('&page=\d+&', f'&page={page}&', response.url)
                 else:
                     page_url = response.url + f'?llat=0.0&llng=0.0&on=&so=0&p=0&f=0&c=0&page={page}&min=0&max=0&deliv=0&rsrv=0&sale=0&st=0&r=&me=0&duty=0&mn=0'
+                print(page_url)
+                time.sleep(5)
                 response_page = self._get_response(page_url)
+                if not response_page:
+                    continue
                 parsers.append(Parse(response_page.text))
         for parser in parsers:
             aptek_urls_and_prices = parser.parse_aptek_urls_and_prices()
@@ -587,6 +601,8 @@ class AptekamosParserRemake(AptekamosParser):
 
     def _get_meds_from_response(self, response: Response):
         meds = []
+        if not response:
+            return []
         names_urls_ids_meds = Parse(response.text).parse_names_urls_ids_meds()
         for name_url_id_med in names_urls_ids_meds:
             med = Med(name=name_url_id_med['name'], url=name_url_id_med['url'], host_id=name_url_id_med['id'])
@@ -594,16 +610,11 @@ class AptekamosParserRemake(AptekamosParser):
         return meds
 
     def _get_response(self, url: str) -> Response:
-        try:
-            response = requests.get(url, headers=HEADERS, proxies=self.proxies)
-        except (ProxyError, ConnectTimeout):
-            self.proxies = self.generator_proxies.get_proxies()
-            return self._get_response(url)
+        response = requests.get(url, headers=HEADERS)
         if response.status_code == 200:
             return response
         elif response.status_code == 403:
-            self.proxies = self.generator_proxies.get_proxies()
-            return self._get_response(url)
+            return
 
 
 if __name__ == '__main__':
